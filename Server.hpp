@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   server.hpp                                         :+:      :+:    :+:   */
+/*   Server.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/30 14:48:31 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/05/30 14:50:02 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/05 15:02:36 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <sstream>
 #include <fcntl.h>
 #include "Client.hpp"
 
@@ -38,6 +39,10 @@ public:
     void acceptNewClient();
     void receiveNewData(int fd);
     static void SignalHandler(int signum);
+    void handleNickCommand(int fd, const std::string& new_nickname);
+    Client* getClientByFd(int fd);
+    void sendMessageToAllClients(int sender_fd, const std::string& message);
+    void handleCAPCommand(int fd, const std::string& command);
     void closeFds();
     void clearClients(int fd);
     void run();

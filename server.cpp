@@ -6,7 +6,7 @@
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 15:09:19 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/05/30 16:30:06 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/05 15:29:15 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,6 +80,98 @@ void Server::serverInit() {
     std::cout << "Waiting to accept a connection...\n";
 }
 
+
+void Server::receiveNewData(int fd) {
+    char buffer[BUFFER_SIZE];
+    memset(buffer, 0, BUFFER_SIZE);
+    int bytes_received = recv(fd, buffer, BUFFER_SIZE - 1, 0);
+    std::cout << "Buffer = " << buffer << "\n";
+    if (bytes_received <= 0) {
+        std::cout << "Client " << fd << " disconnected." << std::endl;
+        close(fd);
+        clearClients(fd);
+    } else {
+        std::cout << "Received: " << buffer << std::endl;
+
+        // Parse the message
+        std::string input(buffer);
+        std::istringstream iss(input);
+        std::string command;
+        iss >> command;
+
+        if (command == "CAP") {
+            handleCAPCommand(fd, input);
+        } else if (command == "PRIVMSG") {
+            std::string recipient;
+            iss >> recipient;
+            size_t message_start = input.find(" :");
+            std::string message = input.substr(message_start + 2);
+            message = ":" + getClientByFd(fd)->get_nickname() + " PRIVMSG " + recipient + " :" + message + "\r\n";
+            sendMessageToAllClients(fd, message);
+        } else if (command == "NICK") {
+            std::string new_nickname;
+            iss >> new_nickname;
+            handleNickCommand(fd, new_nickname);
+        }
+        // Other IRC commands can be handled here
+    }
+}
+
+
+void Server::handleCAPCommand(int fd, const std::string& command) {
+    std::istringstream iss(command);
+    std::string cap, subcommand;
+    iss >> cap >> subcommand; // Skip CAP part and get the actual subcommand
+
+    if (subcommand == "LS") {
+        // Respond with an empty list of supported capabilities
+        std::string response = "CAP * LS :\r\n";
+        send(fd, response.c_str(), response.size(), 0);
+    } else if (subcommand == "REQ") {
+        // For simplicity, deny any requested capabilities
+        std::string response = "CAP * NAK :\r\n";
+        send(fd, response.c_str(), response.size(), 0);
+    } else if (subcommand == "END") {
+        // CAP END means the capability negotiation is complete
+        // No specific response needed for CAP END
+    }
+}
+
+Client* Server::getClientByFd(int fd) {
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        if (_clients[i].get_fd() == fd) {
+            return &_clients[i];
+        }
+    }
+    return NULL;
+}
+
+void Server::handleNickCommand(int fd, const std::string& new_nickname) {
+    Client* client = getClientByFd(fd);
+    if (client == NULL) {
+        return;
+    }
+
+    std::string old_nickname = client->get_nickname();
+    client->set_nickname(new_nickname);
+
+    // Format the NICK change message
+    std::string message = ":" + old_nickname + " NICK :" + new_nickname + "\r\n";
+
+    // Broadcast the NICK change to all clients
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        send(_clients[i].get_fd(), message.c_str(), message.size(), 0);
+    }
+}
+
+void Server::sendMessageToAllClients(int sender_fd, const std::string& message) {
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        if (_clients[i].get_fd() != sender_fd) {
+            send(_clients[i].get_fd(), message.c_str(), message.size(), 0);
+        }
+    }
+}
+
 void Server::acceptNewClient() {
     int client_fd = accept(_ServerSocketFd, NULL, NULL);
     if (client_fd == -1) {
@@ -97,23 +189,15 @@ void Server::acceptNewClient() {
 
     Client client;
     client.set_fd(client_fd);
+
+    // Convert client_fd to a string for the nickname
+    std::ostringstream oss;
+    oss << "Guest" << client_fd;
+    client.set_nickname(oss.str());
+
     _clients.push_back(client);
 
     std::cout << "New client connected: " << client_fd << std::endl;
-}
-
-void Server::receiveNewData(int fd) {
-    char buffer[BUFFER_SIZE];
-    memset(buffer, 0, BUFFER_SIZE);
-    int bytes_received = recv(fd, buffer, BUFFER_SIZE - 1, 0);
-    if (bytes_received <= 0) {
-        std::cout << "Client " << fd << " disconnected." << std::endl;
-        close(fd);
-        clearClients(fd);
-    } else {
-        std::cout << "Received: " << buffer;
-        send(fd, buffer, bytes_received, 0); // Echo back to client
-    }
 }
 
 void Server::run() {
