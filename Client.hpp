@@ -24,16 +24,17 @@
 
 class Client {
     private:
-        int _fd;
+        int         _fd;
         std::string _nickname;
         std::string _IPadd; // IP address of the Client 
 
     public:
         Client() : _fd(-1) {} // Initialize _fd to -1
-        int get_fd() const { return _fd; }
-        std::string get_nickname() const {return _nickname;}
-        void set_nickname(std::string name) {_nickname = name;}
-        void set_fd(int fd) { _fd = fd; }
-        void set_IPADD(const std::string& ip) { _IPadd = ip; }
         ~Client() {}
+
+        int         get_fd() const;
+        std::string get_nickname() const;
+        void        set_nickname(std::string name);
+        void        set_fd(int fd);
+        void        set_IPADD(const std::string& ip);
 };

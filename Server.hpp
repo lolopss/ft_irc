@@ -27,23 +27,24 @@
 
 class Server {
 private:
-    int _Port;
-    int _ServerSocketFd;
-    static bool _Signal;
-    std::vector<Client> _clients;
-    std::vector<struct pollfd> _fds;
+    int                         _Port;
+    int                         _ServerSocketFd;
+    static bool                 _Signal;
+    std::vector<Client>         _clients;
+    std::vector<struct pollfd>  _fds;
 
 public:
     Server() : _Port(4444), _ServerSocketFd(-1) {}
-    void serverInit();
-    void serverSocket();
-    void acceptNewClient();
-    void receiveNewData(int fd);
-    static void SignalHandler(int signum);
-    void closeFds();
-    void clearClients(int fd);
-    void broadcastMessage(const std::string &message, int sender_fd);
-    void run();
     ~Server() {}
+
+    void        serverInit();
+    void        serverSocket();
+    void        acceptNewClient();
+    void        receiveNewData(int fd);
+    static void SignalHandler(int signum);
+    void        closeFds();
+    void        clearClients(int fd);
+    void        broadcastMessage(const std::string &message, int sender_fd);
+    void        run();
 };
 
