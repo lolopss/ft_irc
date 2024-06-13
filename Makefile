@@ -1,17 +1,24 @@
 NAME = ft_irc
-CC = c++ -Wall -Wextra -Werror -std=c++98 -g3
-SRC = main.cpp server.cpp
-OBJ = ${SRC:.c=.o}
+CC = c++
+FLAG = -Wall -Wextra -Werror -std=c++98 -g3
+SRCS = main.cpp		\
+		Client.cpp
+		Server.cpp
+OBJS = $(SRCS:.cpp=.o)
+INCLUDE = -I.
 
-all: $(NAME)
+.cpp.o	:
+	$(CC) $(FLAG) $(INCLUDE) -c $< -o $(<:.cpp=.o)
 
-$(NAME): $(OBJ)
-	$(CC) $(OBJ) -o $(NAME)
+all : $(NAME)
 
-clean:
-	rm -f *.o
+$(NAME) : $(OBJS)
+	$(CC) $(FLAG) -o $(NAME) $(OBJS)
 
-fclean:
-	rm -f $(NAME)
+clean :
+	$(RM) $(OBJS)
+
+fclean : clean
+	$(RM) $(NAME)
 
 re : fclean all
