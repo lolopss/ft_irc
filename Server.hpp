@@ -26,26 +26,26 @@
 
 class Server {
 private:
-    int _Port;
-    int _ServerSocketFd;
-    static bool _Signal;
-    std::vector<Client> _clients;
-    std::vector<struct pollfd> _fds;
+    int                         _Port;
+    int                         _ServerSocketFd;
+    static bool                 _Signal;
+    std::vector<Client>         _clients;
+    std::vector<struct pollfd>  _fds;
 
 public:
     Server() : _Port(4444), _ServerSocketFd(-1) {}
-    void serverInit();
-    void serverSocket();
-    void acceptNewClient();
-    void receiveNewData(int fd);
-    static void SignalHandler(int signum);
-    void handleNickCommand(int fd, const std::string& new_nickname);
-    Client* getClientByFd(int fd);
-    void sendMessageToAllClients(int sender_fd, const std::string& message);
-    void handleCAPCommand(int fd, const std::string& command);
-    void closeFds();
-    void clearClients(int fd);
-    void run();
     ~Server() {}
+    void            serverInit();
+    void            serverSocket();
+    void            acceptNewClient();
+    void            receiveNewData(int fd);
+    static void     SignalHandler(int signum);
+    void            handleNickCommand(int fd, const std::string& new_nickname);
+    Client*         getClientByFd(int fd);
+    void            sendMessageToAllClients(int sender_fd, const std::string& message);
+    void            handleCAPCommand(int fd, const std::string& command);
+    void            closeFds();
+    void            clearClients(int fd);
+    void            run();
 };
 
