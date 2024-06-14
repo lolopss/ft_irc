@@ -6,7 +6,7 @@
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/30 14:48:31 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/14 14:42:35 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/14 15:58:24 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,9 @@
 #include <fcntl.h>
 #include <map>
 #include "Client.hpp"
+
+#define MAX_MESSAGE_LENGTH 510
+#define MSGTOOLONG "Message too long. Maximum length is 510 characters.\r\n"
 
 class Server {
 private:

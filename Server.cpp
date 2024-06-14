@@ -6,7 +6,7 @@
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 15:09:19 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/14 14:49:34 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/14 16:54:42 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -108,6 +108,8 @@ void Server::acceptNewClient() {
 }
 
 void Server::broadcastMessage(const std::string &message, int sender_fd) {
+    if (message.size() == 1)
+        return ;
     std::string sender_nick;
     for (size_t i = 0; i < _clients.size(); ++i) {
         if (_clients[i].get_fd() == sender_fd) {
@@ -115,12 +117,16 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
             break;
         }
     }
+    
     std::string full_message = sender_nick + ": " + message;
+
+    // Limit the message to 510 characters (512 - "\r\n")
+    std::string truncated_message = full_message.substr(0, 510) + "\r";
 
     for (size_t i = 0; i < _clients.size(); ++i) {
         int client_fd = _clients[i].get_fd();
         if (client_fd != sender_fd) {
-            send(client_fd, full_message.c_str(), full_message.size(), 0);
+            send(client_fd, truncated_message.c_str(), truncated_message.size(), 0);
         }
     }
 }
@@ -129,32 +135,44 @@ void Server::receiveNewData(int fd) {
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, BUFFER_SIZE);
     int bytes_received = recv(fd, buffer, BUFFER_SIZE - 1, 0);
+
     if (bytes_received <= 0) {
         std::cout << "Client " << fd << " disconnected." << std::endl;
         close(fd);
         clearClients(fd);
-    } else {
-        std::string message(buffer, bytes_received);
-        std::cout << "Received: " << message;
-        std::istringstream iss(message);
-        std::string command;
-        iss >> command;
+        return;
+    }
 
-        if (command == "/NICK") {
-            std::string new_nick;
-            iss >> new_nick;
-            if (!new_nick.empty()) {
-                for (size_t i = 0; i < _clients.size(); ++i) {
-                    if (_clients[i].get_fd() == fd) {
-                        NICK(&_clients[i], new_nick);
-                        break;
-                    }
+    buffer[bytes_received] = '\0'; // Null-terminate the received string
+    std::string message(buffer);
+
+    // Check if the message exceeds the maximum allowed length
+    if (message.size() > MAX_MESSAGE_LENGTH) {
+        message = message.substr(0, MAX_MESSAGE_LENGTH) + "\r\n";
+        send(fd, MSGTOOLONG, strlen(MSGTOOLONG), 0);
+    }
+
+    if (message.size() != 1) {
+        std::cout << "Received: " << message;
+    }
+
+    std::istringstream iss(message);
+    std::string command;
+    iss >> command;
+
+    if (command == "/NICK") {
+        std::string new_nick;
+        iss >> new_nick;
+        if (!new_nick.empty()) {
+            for (size_t i = 0; i < _clients.size(); ++i) {
+                if (_clients[i].get_fd() == fd) {
+                    NICK(&_clients[i], new_nick);
+                    break;
                 }
             }
-        } 
-        else {
-            broadcastMessage(message, fd);
         }
+    } else {
+        broadcastMessage(message, fd);
     }
 }
 
@@ -165,7 +183,6 @@ void Server::run() {
             if (errno == EINTR) continue;
             throw std::runtime_error("poll() failed");
         }
-
         for (size_t i = 0; i < _fds.size(); ++i) {
             if (_fds[i].revents & POLLIN) {
                 if (_fds[i].fd == _ServerSocketFd) {
