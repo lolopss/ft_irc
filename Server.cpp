@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   server.cpp                                         :+:      :+:    :+:   */
+/*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 15:09:19 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/13 14:51:24 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/14 14:49:34 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,6 +75,7 @@ void Server::serverSocket() {
 
 void Server::serverInit() {
     this->_Port = 4444;
+    this->_client_nb = 0;
     serverSocket();
     std::cout << GRE << "Server <" << _ServerSocketFd << "> Connected <<" << WHI << std::endl;
     std::cout << "Waiting to accept a connection...\n";
@@ -88,13 +89,12 @@ void Server::acceptNewClient() {
         }
         return;
     }
-
+    
     struct pollfd client_poll;
     client_poll.fd = client_fd;
     client_poll.events = POLLIN;
     client_poll.revents = 0;
     _fds.push_back(client_poll);
-
     Client client;
     client.set_fd(client_fd);
     std::string name = "Guest_";
@@ -103,7 +103,7 @@ void Server::acceptNewClient() {
     name += converter.str();
     client.set_nickname(name);
     _clients.push_back(client);
-
+    _client_nb++;
     std::cout << "New client connected: " << client_fd << std::endl;
 }
 
@@ -124,6 +124,7 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
         }
     }
 }
+
 void Server::receiveNewData(int fd) {
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, BUFFER_SIZE);
@@ -135,9 +136,28 @@ void Server::receiveNewData(int fd) {
     } else {
         std::string message(buffer, bytes_received);
         std::cout << "Received: " << message;
-        broadcastMessage(message, fd);
+        std::istringstream iss(message);
+        std::string command;
+        iss >> command;
+
+        if (command == "/NICK") {
+            std::string new_nick;
+            iss >> new_nick;
+            if (!new_nick.empty()) {
+                for (size_t i = 0; i < _clients.size(); ++i) {
+                    if (_clients[i].get_fd() == fd) {
+                        NICK(&_clients[i], new_nick);
+                        break;
+                    }
+                }
+            }
+        } 
+        else {
+            broadcastMessage(message, fd);
+        }
     }
 }
+
 void Server::run() {
     while (!_Signal) {
         int poll_count = poll(_fds.data(), _fds.size(), -1);
