@@ -172,7 +172,19 @@ void Server::receiveNewData(int fd) {
                 }
             }
         }
-    } else {
+    }
+    else if (command == "/JOIN") {
+        std::string chanName;
+        iss >> chanName;
+        std::cout << "chan name is " << chanName << "\r\n";
+        for (size_t i = 0; i < _clients.size(); ++i) {
+            if (_clients[i].get_fd() == fd) {
+                JOIN(chanName, _clients[i].get_nickname(), &_clients[i]);
+                break;
+            }
+        }
+    }
+    else {
         broadcastMessage(message, fd);
     }
 }

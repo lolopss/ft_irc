@@ -24,10 +24,11 @@
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <map>
+#include <utility> // std::pair / std::make_pair
 #include "Client.hpp"
+#include "Cmd.hpp"
 
-#define MAX_MESSAGE_LENGTH 510
-#define MSGTOOLONG "Message too long. Maximum length is 510 characters.\r\n"
+class Channel;
 
 class Server {
 private:
@@ -37,6 +38,8 @@ private:
     std::vector<Client>         _clients;
     std::vector<struct pollfd>  _fds;
     int                         _client_nb;
+    // container map pour les Channels
+    std::map<std::string, Channel*> _chanMap;
 
 public:
     Server() : _Port(4444), _ServerSocketFd(-1) {}
@@ -56,6 +59,7 @@ public:
     
     /*****************Commands(Cmd.cpp)*****************/
     
-    void NICK(Client *client, const std::string &new_name);
+    void        NICK(Client *client, const std::string &new_name);
+    void        JOIN(const std::string &chanName, const std::string &nickname, Client *user);
 };
 

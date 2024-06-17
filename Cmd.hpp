@@ -10,10 +10,11 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-// #pragma once
+#pragma once
 
-// #include "Server.hpp"
+#include "Server.hpp"
 
+class Server;
 
 //Cc anael, en gros c'est 20x plus simple de les faire dans le 
 //fichier server comme ca on a direct la map des clients voili voilou
@@ -29,4 +30,22 @@
 //         void NICK(Client client, std::string new_name);
 // };
 
+class Channel {
+private:
+    std::string _topicName;
+    std::string _chanName;
+    // container map pour avoir les donnees de chaque utilisateurs
+    std::map<std::string, Client*> _userMap;
+public:
+    Channel();
+    Channel(const std::string &name);
+    ~Channel();
 
+    std::string getChanName() const;
+    void    	joinChan(Channel *channel, Client *user, const std::string &nickname, const std::string &chanName);
+};
+
+    //JOIN()
+    //create()
+    //join()
+    //cmd()
