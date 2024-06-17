@@ -6,7 +6,7 @@
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 15:09:19 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/14 16:54:42 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/17 13:29:31 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,7 +109,8 @@ void Server::acceptNewClient() {
 
 void Server::broadcastMessage(const std::string &message, int sender_fd) {
     if (message.size() == 1)
-        return ;
+        return;
+
     std::string sender_nick;
     for (size_t i = 0; i < _clients.size(); ++i) {
         if (_clients[i].get_fd() == sender_fd) {
@@ -117,16 +118,22 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
             break;
         }
     }
-    
-    std::string full_message = sender_nick + ": " + message;
 
-    // Limit the message to 510 characters (512 - "\r\n")
-    std::string truncated_message = full_message.substr(0, 510) + "\r";
+    std::string full_message = sender_nick + ": " + message + "\r\n";
 
     for (size_t i = 0; i < _clients.size(); ++i) {
         int client_fd = _clients[i].get_fd();
         if (client_fd != sender_fd) {
-            send(client_fd, truncated_message.c_str(), truncated_message.size(), 0);
+            size_t total_sent = 0;
+            while (total_sent < full_message.size()) {
+                size_t chunk_size = std::min(full_message.size() - total_sent, static_cast<size_t>(BUFFER_SIZE - 1));
+                int sent = send(client_fd, full_message.c_str() + total_sent, chunk_size, 0);
+                if (sent == -1) {
+                    // Handle send error
+                    break;
+                }
+                total_sent += sent;
+            }
         }
     }
 }
@@ -145,12 +152,6 @@ void Server::receiveNewData(int fd) {
 
     buffer[bytes_received] = '\0'; // Null-terminate the received string
     std::string message(buffer);
-
-    // Check if the message exceeds the maximum allowed length
-    if (message.size() > MAX_MESSAGE_LENGTH) {
-        message = message.substr(0, MAX_MESSAGE_LENGTH) + "\r\n";
-        send(fd, MSGTOOLONG, strlen(MSGTOOLONG), 0);
-    }
 
     if (message.size() != 1) {
         std::cout << "Received: " << message;
