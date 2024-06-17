@@ -6,7 +6,7 @@
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 11:33:00 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/14 14:47:22 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/17 13:34:02 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,6 @@ void Server::NICK(Client *client, const std::string &new_nick) {
         }
     }
     if (!alr_exists) {
-        std::cout << "gskjgnfklsgsfd\n";
         client->set_nickname(new_nick);
         std::string confirmation = "Nickname changed to " + new_nick + "\n";
         send(client->get_fd(), confirmation.c_str(), confirmation.size(), 0);

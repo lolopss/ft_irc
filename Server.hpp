@@ -6,7 +6,7 @@
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/30 14:48:31 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/14 15:58:24 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/17 14:43:55 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,8 @@ public:
     Server() : _Port(4444), _ServerSocketFd(-1) {}
     ~Server() {}
 
-    
+    std::string getClientNickname(int client_fd);
+    void        sendWelcomeMessages(int client_fd);
     void        serverInit();
     void        serverSocket();
     void        acceptNewClient();
