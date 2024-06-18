@@ -6,7 +6,7 @@
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/30 14:48:31 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/17 14:43:55 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/18 15:40:33 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,12 +32,12 @@ class Channel;
 
 class Server {
 private:
-    int                         _Port;
-    int                         _ServerSocketFd;
-    static bool                 _Signal;
-    std::vector<Client>         _clients;
-    std::vector<struct pollfd>  _fds;
-    int                         _client_nb;
+    int                             _Port;
+    int                             _ServerSocketFd;
+    static bool                     _Signal;
+    std::vector<Client>             _clients;
+    std::vector<struct pollfd>      _fds;
+    int                             _client_nb;
     // container map pour les Channels
     std::map<std::string, Channel*> _chanMap;
 
@@ -56,11 +56,11 @@ public:
     void        clearClients(int fd);
     void        broadcastMessage(const std::string &message, int sender_fd);
     void        run();
-    
-    
+    int         exec_command(std::istringstream &iss, std::string &command, std::vector<Client> &_clients, int &fd);
     /*****************Commands(Cmd.cpp)*****************/
     
     void        NICK(Client *client, const std::string &new_name);
     void        JOIN(const std::string &chanName, const std::string &nickname, Client *user);
+    void        PRIVMSG(int sender_fd, const std::string &target, const std::string &message);
 };
 

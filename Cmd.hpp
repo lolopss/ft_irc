@@ -16,20 +16,6 @@
 
 class Server;
 
-//Cc anael, en gros c'est 20x plus simple de les faire dans le 
-//fichier server comme ca on a direct la map des clients voili voilou
-
-
-// class Cmd
-// {
-//     private:
-        
-//     public:
-//         Cmd(/* args */);
-//         ~Cmd();
-//         void NICK(Client client, std::string new_name);
-// };
-
 class Channel {
 private:
     std::string _topicName;

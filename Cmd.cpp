@@ -6,7 +6,7 @@
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/14 11:33:00 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/17 13:34:02 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/18 13:40:08 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,8 @@ void    Server::JOIN(const std::string &chanName, const std::string &nickname, C
         _chanMap[chanName]->joinChan(_chanMap[chanName], user, nickname, chanName);
     }
 }
+
+
 
 
 /* ------------------------- Channel ------------------------- */
