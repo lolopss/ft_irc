@@ -6,7 +6,7 @@
 /*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/05/22 15:09:19 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/17 13:29:31 by ldaniel          ###   ########.fr       */
+/*   Updated: 2024/06/17 16:34:16 by ldaniel          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,6 +81,33 @@ void Server::serverInit() {
     std::cout << "Waiting to accept a connection...\n";
 }
 
+void Server::sendWelcomeMessages(int client_fd) {
+    std::string welcome = ":server_name 001 " + getClientNickname(client_fd) + " :Welcome to the IRC server\r\n";
+    std::string yourHost = ":server_name 002 " + getClientNickname(client_fd) + " :Your host is PEERC, running version 1.0\r\n";
+    std::string created = ":server_name 003 " + getClientNickname(client_fd) + " :This server was created the 3rd of June\r\n";
+    std::string myInfo = ":server_name 004 " + getClientNickname(client_fd) + " :PEERC 1.0 o o\r\n";
+    std::string motdStart = ":server_name 375 " + getClientNickname(client_fd) + " :- server_name Message of the day - \r\n";
+    std::string motd = ":server_name 372 " + getClientNickname(client_fd) + " :- Welcome to this IRC server!\r\n";
+    std::string endOfMotd = ":server_name 376 " + getClientNickname(client_fd) + " :End of /MOTD command.\r\n";
+
+    send(client_fd, welcome.c_str(), welcome.size(), 0);
+    send(client_fd, yourHost.c_str(), yourHost.size(), 0);
+    send(client_fd, created.c_str(), created.size(), 0);
+    send(client_fd, myInfo.c_str(), myInfo.size(), 0);
+    send(client_fd, motdStart.c_str(), motdStart.size(), 0);
+    send(client_fd, motd.c_str(), motd.size(), 0);
+    send(client_fd, endOfMotd.c_str(), endOfMotd.size(), 0);
+}
+
+std::string Server::getClientNickname(int client_fd) {
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        if (_clients[i].get_fd() == client_fd) {
+            return _clients[i].get_nickname();
+        }
+    }
+    return "";
+}
+
 void Server::acceptNewClient() {
     int client_fd = accept(_ServerSocketFd, NULL, NULL);
     if (client_fd == -1) {
@@ -89,7 +116,7 @@ void Server::acceptNewClient() {
         }
         return;
     }
-    
+
     struct pollfd client_poll;
     client_poll.fd = client_fd;
     client_poll.events = POLLIN;
@@ -105,10 +132,12 @@ void Server::acceptNewClient() {
     _clients.push_back(client);
     _client_nb++;
     std::cout << "New client connected: " << client_fd << std::endl;
+
+    sendWelcomeMessages(client_fd); // Send welcome messages after accepting the client
 }
 
 void Server::broadcastMessage(const std::string &message, int sender_fd) {
-    if (message.size() == 1)
+    if (message.size() <= 1)
         return;
 
     std::string sender_nick;
@@ -118,7 +147,7 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
             break;
         }
     }
-
+    std::cout << "Sender Nick: [" << sender_nick << "], Message: [" << message << "]" << std::endl;
     std::string full_message = sender_nick + ": " + message + "\r\n";
 
     for (size_t i = 0; i < _clients.size(); ++i) {
@@ -129,11 +158,12 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
                 size_t chunk_size = std::min(full_message.size() - total_sent, static_cast<size_t>(BUFFER_SIZE - 1));
                 int sent = send(client_fd, full_message.c_str() + total_sent, chunk_size, 0);
                 if (sent == -1) {
-                    // Handle send error
+                    std::cerr << RED << "Failed to send message to client " << client_fd << WHI << std::endl;
                     break;
                 }
                 total_sent += sent;
             }
+            std::cout << "Sent message to client " << client_fd << ": " << full_message << std::endl;
         }
     }
 }
@@ -153,10 +183,10 @@ void Server::receiveNewData(int fd) {
     buffer[bytes_received] = '\0'; // Null-terminate the received string
     std::string message(buffer);
 
-    if (message.size() != 1) {
-        std::cout << "Received: " << message;
+    if (message.size() > 1) {
+        std::cout << "Received from " << fd << ": " << message << std::endl;
     }
-
+    std::cout << "Message received: [" << message << "]" << std::endl;
     std::istringstream iss(message);
     std::string command;
     iss >> command;
