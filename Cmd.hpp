@@ -17,8 +17,9 @@ public:
     ~Channel();
 
     std::string getChanName() const;
+    bool        alreadyExist(Server *server, Client *user, const std::string nickname);
     void    	joinChan(Server *server, Client *user, const std::string &nickname, const std::string &chanName);
-    void        RPL(Client *user, Server *server);
+    void        RPL(Client *user, Server *server, const std::string &nickname);
 };
 
     //JOIN()
