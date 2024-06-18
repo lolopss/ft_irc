@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Server.hpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/05/30 14:48:31 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/17 14:43:55 by ldaniel          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #pragma once
 
 #include <vector>
@@ -44,7 +32,8 @@ private:
     std::map<std::string, Channel*> _chanMap;
 
 public:
-    Server() : _ServerName("PEERC"), _Port(4444), _ServerSocketFd(-1) {}
+    Server() : _Port(4444), _ServerSocketFd(-1) {}
+    Server(char *port) : _Port(atoi(port)), _ServerSocketFd(-1) {}
     ~Server() {}
 
     std::string getClientNickname(int client_fd);

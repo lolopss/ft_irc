@@ -1,20 +1,21 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: ldaniel <ldaniel@student.42.fr>            +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/05/21 15:02:40 by ldaniel           #+#    #+#             */
-/*   Updated: 2024/06/14 14:35:40 by ldaniel          ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "Server.hpp"
-
-
-int main() {
-    Server serv;
+int check_args(int ac, char **av){
+ if (ac != 3){
+        std::cout << RED << "./ft_irc \"port\"(6690 ~ 6699) \"password\"\n" << WHI;
+        return (1);
+    }
+    if ((atoi(av[1]) < 6690 || atoi(av[1]) > 6699))
+    {
+        std::cout << RED << "./ft_irc \"port\"(6690 ~ 6699) \"password\"\n" << WHI;
+        return (2);
+    }
+    return (0);
+}
+int main(int ac, char **av) {
+    
+    if (check_args(ac, av))
+        return 1;
+    Server serv(av[1]);
     std::cout << "-----Server-----\n";
     try {
         signal(SIGINT, Server::SignalHandler);
