@@ -58,6 +58,7 @@ public:
     void        closeFds();
     void        clearClients(int fd);
     void        broadcastMessage(const std::string &message, int sender_fd);
+    int         exec_command(std::istringstream &iss, std::string &command, std::vector<Client> &_clients, int &fd);
     void        run();
     
     
@@ -65,5 +66,6 @@ public:
     
     void        NICK(Client *client, const std::string &new_name);
     void        JOIN(const std::string &chanName, const std::string &nickname, Client *user);
+    void        PRIVMSG(int sender_fd, const std::string &target, const std::string &message);
 };
 

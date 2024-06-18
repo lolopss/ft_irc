@@ -159,6 +159,43 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
     }
 }
 
+int Server::exec_command(std::istringstream &iss, std::string &command, std::vector<Client> &_clients, int &fd){
+    if (command == "/NICK" || command == "/nick") {
+        std::string new_nick;
+        iss >> new_nick;
+        if (!new_nick.empty()) {
+            for (size_t i = 0; i < _clients.size(); ++i) {
+                if (_clients[i].get_fd() == fd) {
+                    NICK(&_clients[i], new_nick);
+                    break;
+                }
+            }
+        }
+    }
+    else if (command == "/JOIN" || command == "/join") {
+        std::string chanName;
+        iss >> chanName;
+        std::cout << "chan name is " << chanName << "\r\n";
+        for (size_t i = 0; i < _clients.size(); ++i) {
+            if (_clients[i].get_fd() == fd) {
+                JOIN(chanName, _clients[i].get_nickname(), &_clients[i]);
+                break;
+            }
+        }
+    }
+    else if (command == "/PRIVMSG" || command == "/privmsg") {
+        std::string target;
+        iss >> target;
+        std::string private_message;
+        std::getline(iss, private_message);
+        private_message = private_message.substr(1); // Remove ":" from message
+        PRIVMSG(fd, target, private_message);
+    }
+    else
+        return (0);
+    return 1;
+}
+
 void Server::receiveNewData(int fd) {
     char buffer[BUFFER_SIZE];
     memset(buffer, 0, BUFFER_SIZE);
@@ -171,44 +208,37 @@ void Server::receiveNewData(int fd) {
         return;
     }
 
-    buffer[bytes_received] = '\0'; // Null-terminate the received string
+    buffer[bytes_received] = '\0';
     std::string message(buffer);
 
     if (message.size() > 1) {
-        std::cout << "Received from " << fd << ": " << message << std::endl;
+        std::cout << "Received from " << fd << ": " << message;
     }
-    std::cout << "Message received: [" << message << "]" << std::endl;
     std::istringstream iss(message);
     std::string command;
     iss >> command;
-
-    if (command == "/NICK") {
-        std::string new_nick;
-        iss >> new_nick;
-        if (!new_nick.empty()) {
-            for (size_t i = 0; i < _clients.size(); ++i) {
-                if (_clients[i].get_fd() == fd) {
-                    NICK(&_clients[i], new_nick);
-                    break;
-                }
-            }
-        }
-    }
-    else if (command == "/JOIN") // NOTE : Gerer plusieurs channel (/JOIN chan1 chan2 chan3 ...)
-    {
-        std::string chanName;
-        iss >> chanName;
-        std::cout << "chan name is " << chanName << "\r\n";
-        for (size_t i = 0; i < _clients.size(); ++i) {
-            if (_clients[i].get_fd() == fd) {
-                JOIN(chanName, _clients[i].get_nickname(), &_clients[i]);
-                break;
-            }
-        }
-    }
-    else {
+    
+    if (!exec_command(iss, command, _clients, fd)){ // if there's no command, then send message
         broadcastMessage(message, fd);
     }
+}
+
+void Server::PRIVMSG(int sender_fd, const std::string &target, const std::string &message) {
+    std::string sender_nick = getClientNickname(sender_fd);
+    std::string full_message = ":" + sender_nick + " PRIVMSG " + target + " :" + message + "\r\n";
+    
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        if (_clients[i].get_nickname() == target) {
+            int target_fd = _clients[i].get_fd();
+            send(target_fd, full_message.c_str(), full_message.size(), 0);
+            std::cout << "Sent private message from " << sender_nick << " to " << target << ": " << message << std::endl;
+            return ;
+        }
+    }
+    
+    // If target not found, notify sender
+    std::string error_message = ":PEERC 401 " + sender_nick + " " + target + " :No such nick/channel\r\n";
+    send(sender_fd, error_message.c_str(), error_message.size(), 0);
 }
 
 void Server::run() {
