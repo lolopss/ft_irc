@@ -32,7 +32,7 @@ private:
     std::map<std::string, Channel*> _chanMap;
 
 public:
-    Server() : _Port(4444), _ServerSocketFd(-1) {}
+    Server(){}
     Server(char *port) : _Port(atoi(port)), _ServerSocketFd(-1) {}
     ~Server() {}
 

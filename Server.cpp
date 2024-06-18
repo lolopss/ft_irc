@@ -62,7 +62,6 @@ void Server::serverSocket() {
 }
 
 void Server::serverInit() {
-    this->_Port = 4444;
     this->_client_nb = 0;
     serverSocket();
     std::cout << GRE << "Server <" << _ServerSocketFd << "> Connected <<" << WHI << std::endl;
@@ -111,8 +110,7 @@ void Server::acceptNewClient() {
     _clients.push_back(client);
     _client_nb++;
     std::cout << "New client connected: " << client_fd << std::endl;
-
-    sendWelcomeMessages(client_fd); // Send welcome messages after accepting the client
+    sendWelcomeMessages(client_fd); // all rpl for start
 }
 
 void Server::broadcastMessage(const std::string &message, int sender_fd) {
@@ -126,9 +124,7 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
             break;
         }
     }
-    std::cout << "Sender Nick: [" << sender_nick << "], Message: [" << message << "]" << std::endl;
     std::string full_message = sender_nick + ": " + message + "\r\n";
-
     for (size_t i = 0; i < _clients.size(); ++i) {
         int client_fd = _clients[i].get_fd();
         if (client_fd != sender_fd) {
