@@ -32,6 +32,7 @@ class Server;
 
 class Channel {
 private:
+    bool        _isTopic;
     std::string _topicName;
     std::string _chanName;
     // container map pour avoir les donnees de chaque utilisateurs
@@ -42,7 +43,8 @@ public:
     ~Channel();
 
     std::string getChanName() const;
-    void    	joinChan(Channel *channel, Client *user, const std::string &nickname, const std::string &chanName);
+    void    	joinChan(Server *server, Client *user, const std::string &nickname, const std::string &chanName);
+    void        RPL(Client *user, Server *server);
 };
 
     //JOIN()

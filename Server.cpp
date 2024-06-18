@@ -99,15 +99,6 @@ void Server::sendWelcomeMessages(int client_fd) {
     send(client_fd, endOfMotd.c_str(), endOfMotd.size(), 0);
 }
 
-std::string Server::getClientNickname(int client_fd) {
-    for (size_t i = 0; i < _clients.size(); ++i) {
-        if (_clients[i].get_fd() == client_fd) {
-            return _clients[i].get_nickname();
-        }
-    }
-    return "";
-}
-
 void Server::acceptNewClient() {
     int client_fd = accept(_ServerSocketFd, NULL, NULL);
     if (client_fd == -1) {
@@ -203,7 +194,8 @@ void Server::receiveNewData(int fd) {
             }
         }
     }
-    else if (command == "/JOIN") {
+    else if (command == "/JOIN") // NOTE : Gerer plusieurs channel (/JOIN chan1 chan2 chan3 ...)
+    {
         std::string chanName;
         iss >> chanName;
         std::cout << "chan name is " << chanName << "\r\n";
@@ -237,4 +229,18 @@ void Server::run() {
         }
     }
     closeFds();
+}
+
+
+/* ------------------ Getters ------------------ */
+
+std::string Server::getServerName() const { return _ServerName; }
+
+std::string Server::getClientNickname(int client_fd) {
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        if (_clients[i].get_fd() == client_fd) {
+            return _clients[i].get_nickname();
+        }
+    }
+    return "";
 }

@@ -31,33 +31,64 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
     }
 }
 
-// checker si le channel existe
-// rejoindre ou creer le channel
+
 // gerer les cmds et modes
 
 void    Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user)
 {
     if (_chanMap.find(chanName) != _chanMap.end())
     {
-        _chanMap[chanName]->joinChan(_chanMap[chanName], user, nickname, chanName);
+        _chanMap[chanName]->joinChan(this, user, nickname, chanName);
     }
     else
     {
         Channel *newChan = new Channel(chanName);
         _chanMap.insert(std::make_pair(chanName, newChan));
-        _chanMap[chanName]->joinChan(_chanMap[chanName], user, nickname, chanName);
+        _chanMap[chanName]->joinChan(this, user, nickname, chanName);
+    }
+    for (std::map<std::string, Channel*>::iterator it = _chanMap.begin(); it != _chanMap.end(); it++)
+    {
+        std::cout << it->first << "\r\n";
     }
 }
 
 
 /* ------------------------- Channel ------------------------- */
 
-Channel::Channel(const std::string &name) : _chanName(name) { }
+Channel::Channel(const std::string &name) : _isTopic(false), _chanName(name) { }
 
-void    Channel::joinChan(Channel *channel, Client *user, const std::string &nickname, const std::string &chanName)
+void    Channel::joinChan(Server *server, Client *user, const std::string &nickname, const std::string &chanName)
 {
-    channel->_userMap.insert(std::make_pair(nickname, user));
+    _userMap.insert(std::make_pair(nickname, user));
     std::cout << nickname << " join " << chanName << "\r\n";
+    RPL(user, server);
+}
+
+void    Channel::RPL(Client *user, Server *server)
+{
+    std::string noTopic = ":" + server->getServerName() + " 331 " + user->get_nickname() + " #" + _chanName + " :No topic is set\r\n"; // RPL 331 pas de topic
+    std::string topic = ":" + server->getServerName() + " 332 " + user->get_nickname() + " #" + _chanName + " :" + _topicName + "\r\n"; // RPL 332 avec topic
+
+    for (std::map<std::string, Client*>::iterator it = _userMap.begin(); it != _userMap.end(); it++)
+    {
+        std::cout << "user are : " << it->first << "\n";
+    } // print cote serveur pour le debugage
+
+    std::string namReply = ":" + server->getServerName() + " 353 " + user->get_nickname() + " = #" + _chanName + " :"; // RPL 353 liste des utilisateurs
+    for (std::map<std::string, Client*>::iterator it = _userMap.begin(); it != _userMap.end();)
+    {
+        namReply += it->first + (it++ == _userMap.end() ? "\r\n" : " ");
+    }
+    std::string endOfName = ":" + server->getServerName() + " 366 " + user->get_nickname() + _chanName + ":End of /NAME list\r\n"; // RPL 366 fin de liste des utilisateurs
+
+    if (!_isTopic){
+        send(user->get_fd(), noTopic.c_str(), noTopic.size(), 0); // RPL 331
+    }
+    else{
+        send(user->get_fd(), topic.c_str(), topic.size(), 0); // RPL 332
+    }
+    send(user->get_fd(), namReply.c_str(), namReply.size(), 0); // RPL 353
+    send(user->get_fd(), endOfName.c_str(), endOfName.size(), 0); // RPL 366
 }
 
 std::string Channel::getChanName() const { return _chanName; }

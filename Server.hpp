@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <map>
 #include <utility> // std::pair / std::make_pair
+#include <iterator>
 #include "Client.hpp"
 #include "Cmd.hpp"
 
@@ -32,6 +33,7 @@ class Channel;
 
 class Server {
 private:
+    std::string                 _ServerName;
     int                         _Port;
     int                         _ServerSocketFd;
     static bool                 _Signal;
@@ -42,10 +44,11 @@ private:
     std::map<std::string, Channel*> _chanMap;
 
 public:
-    Server() : _Port(4444), _ServerSocketFd(-1) {}
+    Server() : _ServerName("PEERC"), _Port(4444), _ServerSocketFd(-1) {}
     ~Server() {}
 
     std::string getClientNickname(int client_fd);
+    std::string getServerName() const;
     void        sendWelcomeMessages(int client_fd);
     void        serverInit();
     void        serverSocket();
