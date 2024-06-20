@@ -16,7 +16,7 @@
 #include <stdexcept>
 
 
-#define BUFFER_SIZE 2147483
+#define BUFFER_SIZE 1024
 #define RED "\e[1;31m" //-> for red color
 #define WHI "\e[0;37m" //-> for white color
 #define GRE "\e[1;32m" //-> for green color

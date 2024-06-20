@@ -34,6 +34,19 @@ void Server::clearClients(int fd) {
     }
 }
 
+void        Server::clearMap()
+{
+    std::map<std::string, Channel*>::iterator   it;
+
+    for (it = _chanMap.begin(); it != _chanMap.end(); it++)
+    {
+        //it->second->clearMaps(); <-- clearMaps() est appele dans le destructeur de Channel pour l'instant
+        delete it->second;
+    }
+
+    _chanMap.clear();
+}
+
 void Server::serverSocket() {
     struct sockaddr_in add;
     struct pollfd NewPoll;
@@ -62,7 +75,7 @@ void Server::serverSocket() {
 }
 
 void Server::serverInit() {
-    this->_Port = 4444;
+    //this->_Port = 4444;
     this->_client_nb = 0;
     serverSocket();
     std::cout << GRE << "Server <" << _ServerSocketFd << "> Connected <<" << WHI << std::endl;
@@ -70,13 +83,13 @@ void Server::serverInit() {
 }
 
 void Server::sendWelcomeMessages(int client_fd) {
-    std::string welcome = ":server_name 001 " + getClientNickname(client_fd) + " :Welcome to the IRC server\r\n";
-    std::string yourHost = ":server_name 002 " + getClientNickname(client_fd) + " :Your host is PEERC, running version 1.0\r\n";
-    std::string created = ":server_name 003 " + getClientNickname(client_fd) + " :This server was created the 3rd of June\r\n";
-    std::string myInfo = ":server_name 004 " + getClientNickname(client_fd) + " :PEERC 1.0 o o\r\n";
-    std::string motdStart = ":server_name 375 " + getClientNickname(client_fd) + " :- server_name Message of the day - \r\n";
-    std::string motd = ":server_name 372 " + getClientNickname(client_fd) + " :- Welcome to this IRC server!\r\n";
-    std::string endOfMotd = ":server_name 376 " + getClientNickname(client_fd) + " :End of /MOTD command.\r\n";
+    std::string welcome = ":" + _ServerName + " 001 " + getClientNickname(client_fd) + " :Welcome to the IRC server\r\n";
+    std::string yourHost = ":" + _ServerName + " 002 " + getClientNickname(client_fd) + " :Your host is PEERC, running version 1.0\r\n";
+    std::string created = ":" + _ServerName + " 003 " + getClientNickname(client_fd) + " :This server was created the 3rd of June\r\n";
+    std::string myInfo = ":" + _ServerName + " 004 " + getClientNickname(client_fd) + " :PEERC 1.0 o o\r\n";
+    std::string motdStart = ":" + _ServerName + " 375 " + getClientNickname(client_fd) + " :- server_name Message of the day - \r\n";
+    std::string motd = ":" + _ServerName + " 372 " + getClientNickname(client_fd) + " :- Welcome to this IRC server!\r\n";
+    std::string endOfMotd = ":" + _ServerName + " 376 " + getClientNickname(client_fd) + " :End of /MOTD command.\r\n";
 
     send(client_fd, welcome.c_str(), welcome.size(), 0);
     send(client_fd, yourHost.c_str(), yourHost.size(), 0);
@@ -147,29 +160,31 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
     }
 }
 
-int Server::exec_command(std::istringstream &iss, std::string &command, std::vector<Client> &_clients, int &fd){
+int Server::exec_command(std::istringstream &iss, std::string &command, Client &client, int &fd){
     if (command == "/NICK" || command == "/nick") {
         std::string new_nick;
         iss >> new_nick;
         if (!new_nick.empty()) {
-            for (size_t i = 0; i < _clients.size(); ++i) {
-                if (_clients[i].get_fd() == fd) {
-                    NICK(&_clients[i], new_nick);
-                    break;
-                }
-            }
+            NICK(&client, new_nick);
         }
     }
     else if (command == "/JOIN" || command == "/join") {
+        //std::vector<std::string>    chanName;
+        std::string                 TchanName; iss >> TchanName;
+        //while (iss >> TchanName)
+        //{
+            //chanName.insert(TchanName);
+            if (TchanName.empty())
+                return 0;
+        //}
+        JOIN(TchanName, client.get_nickname(), &client);
+    }
+    else if (command == "/PART" || command == "/part"){
         std::string chanName;
+        std::string reason;
         iss >> chanName;
-        std::cout << "chan name is " << chanName << "\r\n";
-        for (size_t i = 0; i < _clients.size(); ++i) {
-            if (_clients[i].get_fd() == fd) {
-                JOIN(chanName, _clients[i].get_nickname(), &_clients[i]);
-                break;
-            }
-        }
+        iss >> reason;
+        PART(&client, chanName, reason);
     }
     else if (command == "/PRIVMSG" || command == "/privmsg") {
         std::string target;
@@ -180,7 +195,7 @@ int Server::exec_command(std::istringstream &iss, std::string &command, std::vec
         PRIVMSG(fd, target, private_message);
     }
     else
-        return (0);
+        return 0;
     return 1;
 }
 
@@ -206,7 +221,15 @@ void Server::receiveNewData(int fd) {
     std::string command;
     iss >> command;
     
-    if (!exec_command(iss, command, _clients, fd)){ // if there's no command, then send message
+    size_t  clientIndex = 0;
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        if (_clients[i].get_fd() == fd) {
+            clientIndex = i;
+            break;
+        }
+    }
+
+    if (!exec_command(iss, command, _clients[clientIndex], fd)){ // if there's no command, then send message
         broadcastMessage(message, fd);
     }
 }
@@ -225,7 +248,7 @@ void Server::PRIVMSG(int sender_fd, const std::string &target, const std::string
     }
     
     // If target not found, notify sender
-    std::string error_message = ":PEERC 401 " + sender_nick + " " + target + " :No such nick/channel\r\n";
+    std::string error_message = ":" + _ServerName + " 401 " + sender_nick + " " + target + " :No such nick/channel\r\n";
     send(sender_fd, error_message.c_str(), error_message.size(), 0);
 }
 
@@ -246,6 +269,7 @@ void Server::run() {
             }
         }
     }
+    clearMap();
     closeFds();
 }
 
