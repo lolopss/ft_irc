@@ -12,8 +12,10 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
         }
     }
     if (!alr_exists) {
+        std::string old_nick = client->get_nickname();
         client->set_nickname(new_nick);
-        std::string confirmation = "Nickname changed to " + new_nick + "\n";
+        std::string confirmation = "Nickname changed to " + new_nick + "\r\n";
+        std::cout << "Client " << client->get_fd() << " changed nickname from " << old_nick << " to " << new_nick << "\n";
         send(client->get_fd(), confirmation.c_str(), confirmation.size(), 0);
     }
 }
@@ -56,7 +58,7 @@ Channel::~Channel() { clearMaps(); }
 void    Channel::joinChan(Server *server, Client *user, const std::string &nickname, const std::string &chanName)
 {
     _userMap.insert(std::make_pair(nickname, user));
-    std::cout << nickname << " join " << chanName << "\r\n";
+    std::cout << nickname << " joined channel #" << chanName << "\r\n";
     RPL(user, server, nickname);
 }
 
