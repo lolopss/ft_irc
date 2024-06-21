@@ -179,7 +179,12 @@ int Server::exec_command(std::istringstream &iss, std::string &command, Client &
         //}
         JOIN(TchanName, client.get_nickname(), &client);
     }
-    else if (command == "/PART" || command == "/part") {
+    else if (command == "/PING" || command == "/ping"){
+        std::string msg;
+        iss >> msg;
+        PING(&client, msg);
+    }
+    else if (command == "/PART" || command == "/part"){
         std::string chanName;
         std::string reason;
         iss >> chanName;
@@ -216,45 +221,38 @@ void Server::receiveNewData(int fd) {
 
     buffer[bytes_received] = '\0';
     std::string message(buffer);
+    _partial_messages[fd] += message;
 
-    if (message.size() > 1) {
-        std::cout << "Received from " << fd << ": " << message;
-    }
+    // Vérifiez si nous avons une commande complète (délimitée par "\r\n")
+    size_t pos;
+    while ((pos = _partial_messages[fd].find("\r\n")) != std::string::npos) {
+        // Extraire la commande complète
+        std::string complete_command = _partial_messages[fd].substr(0, pos);
+        _partial_messages[fd].erase(0, pos + 2); // Supprimez aussi le "\r\n"
 
-    std::istringstream iss(message);
-    std::string command;
-    iss >> command;
-    
-    size_t  clientIndex = 0;
-    for (size_t i = 0; i < _clients.size(); ++i) {
-        if (_clients[i].get_fd() == fd) {
-            clientIndex = i;
-            break;
+        if (!complete_command.empty()) {
+            std::cout << "Received from " << fd << ": " << complete_command << std::endl;
+
+            std::istringstream iss(complete_command);
+            std::string command;
+            iss >> command;
+
+            size_t clientIndex = 0;
+            for (size_t i = 0; i < _clients.size(); ++i) {
+                if (_clients[i].get_fd() == fd) {
+                    clientIndex = i;
+                    break;
+                }
+            }
+
+            if (!exec_command(iss, command, _clients[clientIndex], fd)) { // if there's no command, then send message
+                broadcastMessage(complete_command, fd);
+            }
         }
-    }
-
-    if (!exec_command(iss, command, _clients[clientIndex], fd)){ // if there's no command, then send message
-        broadcastMessage(message, fd);
     }
 }
 
-void Server::PRIVMSG(int sender_fd, const std::string &target, const std::string &message) {
-    std::string sender_nick = getClientNickname(sender_fd);
-    std::string full_message = ":" + sender_nick + " PRIVMSG " + target + " :" + message + "\r\n";
-    
-    for (size_t i = 0; i < _clients.size(); ++i) {
-        if (_clients[i].get_nickname() == target) {
-            int target_fd = _clients[i].get_fd();
-            send(target_fd, full_message.c_str(), full_message.size(), 0);
-            std::cout << "Sent private message from " << sender_nick << " to " << target << ": " << message << std::endl;
-            return ;
-        }
-    }
-    
-    // If target not found, notify sender
-    std::string error_message = ":" + _ServerName + " 401 " + sender_nick + " " + target + " :No such nick/channel\r\n";
-    send(sender_fd, error_message.c_str(), error_message.size(), 0);
-}
+
 
 void Server::run() {
     while (!_Signal) {

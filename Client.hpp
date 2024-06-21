@@ -27,7 +27,6 @@ class Client {
         int         _fd;
         std::string _nickname;
         std::string _IPadd; // IP address of the Client 
-
     public:
         Client() : _fd(-1) {} 
         ~Client() {}

@@ -28,11 +28,10 @@ private:
     std::vector<Client>         _clients;
     std::vector<struct pollfd>  _fds;
     int                         _client_nb;
-    // map for Channel
     std::map<std::string, Channel*> _chanMap;
+    std::map<int, std::string> _partial_messages; // for \D handling
 
 public:
-    // Server() : _Port(4444), _ServerSocketFd(-1) {} <-- old constructor
     Server(char *port) : _ServerName("PEERC"), _Port(atoi(port)), _ServerSocketFd(-1) {}
     ~Server() {}
 
@@ -59,5 +58,6 @@ public:
     void        LIST(Client *user);
     void        PART(Client *user, const std::string &chanName, const std::string &reason);
     void        PRIVMSG(int sender_fd, const std::string &target, const std::string &message);
+    void        PING(Client *client, std::string message);
 };
 
