@@ -218,7 +218,7 @@ void Server::receiveNewData(int fd) {
         std::cout << "Received from " << fd << ": " << message;
     }
 
-    std::istringstream *iss = new std::istringstream(message);
+    std::istringstream iss(message);
     std::string command;
     iss >> command;
     
