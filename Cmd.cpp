@@ -134,6 +134,24 @@ void    Server::PART(Client *user, const std::string &chanName, const std::strin
     }
 }
 
+void Server::PRIVMSG(int sender_fd, const std::string &target, const std::string &message) {
+    std::string sender_nick = getClientNickname(sender_fd);
+    std::string full_message = ":" + sender_nick + " PRIVMSG " + target + " :" + message + "\r\n";
+    
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        if (_clients[i].get_nickname() == target) {
+            int target_fd = _clients[i].get_fd();
+            send(target_fd, full_message.c_str(), full_message.size(), 0);
+            std::cout << "Sent private message from " << sender_nick << " to " << target << ": " << message << std::endl;
+            return ;
+        }
+    }
+    
+    // If target not found, notify sender
+    std::string error_message = ":" + _ServerName + " 401 " + sender_nick + " " + target + " :No such nick/channel\r\n";
+    send(sender_fd, error_message.c_str(), error_message.size(), 0);
+}
+
   // -------------------> Others <------------------- //
 
 bool    Channel::isOps(const std::string &nickname)
@@ -178,3 +196,10 @@ void    Channel::clearMaps()
 }
 
 std::string Channel::getChanName() const { return _chanName; }
+
+void	Server::PING(Client *client, std::string message)
+{
+	std::string response1 = client->get_nickname() + " PONG " + message + "\r\n";
+	send(client->get_fd(), response1.c_str(), response1.size(), 0);
+}
+
