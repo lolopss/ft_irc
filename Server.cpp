@@ -20,15 +20,19 @@ void Server::closeFds() {
 }
 
 void Server::clearClients(int fd) {
-    for (size_t i = 0; i < _fds.size(); i++) {
-        if (_fds[i].fd == fd) {
-            _fds.erase(_fds.begin() + i);
+    // Remove from _fds
+    for (std::vector<struct pollfd>::iterator it = _fds.begin(); it != _fds.end(); ++it) {
+        if (it->fd == fd) {
+            std::cout << "Removing fd " << fd << " from _fds" << std::endl;
+            _fds.erase(it);
             break;
         }
     }
-    for (size_t i = 0; i < _clients.size(); i++) {
-        if (_clients[i].get_fd() == fd) {
-            _clients.erase(_clients.begin() + i);
+    
+    // Remove from _clients
+    for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+        if (it->get_fd() == fd) {
+            _clients.erase(it);
             break;
         }
     }
@@ -198,13 +202,15 @@ void Server::receiveNewData(int fd) {
     if (message.size() > 1) {
         std::cout << "Received from " << fd << ": " << message;
     }
-    std::istringstream iss(message);
+
+    std::istringstream *iss = new std::istringstream(message);
     std::string command;
-    iss >> command;
-    
-    if (!exec_command(iss, command, _clients, fd)){ // if there's no command, then send message
-        broadcastMessage(message, fd);
+    while (*iss >> command) {
+        if (exec_command(*iss, command, _clients, fd) == 0) {
+            broadcastMessage(message, fd);
+        }
     }
+    delete iss; // Make sure to delete the dynamically allocated istringstream
 }
 
 void Server::PRIVMSG(int sender_fd, const std::string &target, const std::string &message) {
