@@ -45,11 +45,26 @@ void    Server::JOIN(const std::string &chanName, const std::string &nickname, C
 }
 
 
+void    Server::LIST(Client *user)
+{
+    std::map<std::string, Channel*>::iterator it;
+    std::string header = "321 Channels :Users Name\r\n"; // RPL 321 list start
+    std::string listEnd = ":End of /LIST\r\n";
+
+    send(user->get_fd(), header.c_str(), header.size(), 0);
+    for (it = _chanMap.begin(); it != _chanMap.end(); it++)
+    {
+        it->second->chanList(user);
+    }
+
+    send(user->get_fd(), listEnd.c_str(), listEnd.size(), 0);
+}
+
 
 
 /* ------------------------- Channel ------------------------- */
 
-Channel::Channel(const std::string &name) : _isTopic(false), _chanName(name) { }
+Channel::Channel(const std::string &name) : _nbUsers(0), _isTopic(false), _chanName(name) { }
 Channel::~Channel() { clearMaps(); }
 
 
@@ -57,6 +72,7 @@ Channel::~Channel() { clearMaps(); }
 
 void    Channel::joinChan(Server *server, Client *user, const std::string &nickname, const std::string &chanName)
 {
+    _nbUsers++;
     _userMap.insert(std::make_pair(nickname, user));
     std::cout << nickname << " joined channel #" << chanName << "\r\n";
     RPL(user, server, nickname);
@@ -73,6 +89,15 @@ bool    Channel::alreadyJoin(Server *server, Client *user, const std::string &ni
         return false;
     }
     return true;
+}
+
+void    Channel::chanList(Client *user)
+{
+    std::ostringstream  oss;
+    oss << _nbUsers;
+
+    std::string list = "322 " + _chanName + " " + oss.str() + ":" + _topicName + "\r\n"; // RPL 322 list
+    send(user->get_fd(), list.c_str(), list.size(), 0);
 }
 
 void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
@@ -111,7 +136,11 @@ void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
 
   // -------------------> Commands <------------------- //
 
-//void    TOPIC()
+void    TOPIC()
+{
+    
+}
+
 void    Server::PART(Client *user, const std::string &chanName, const std::string &reason)
 {
     if (_chanMap.find(chanName) != _chanMap.end())
@@ -131,6 +160,7 @@ void    Server::PART(Client *user, const std::string &chanName, const std::strin
     {
         std::string noSuchChannel = ":" + _ServerName + " 403 " + user->get_nickname() + " " + chanName + ":No such channel\r\n";
         send(user->get_fd(), noSuchChannel.c_str(), noSuchChannel.size(), 0);
+        return ;
     }
 }
 
@@ -147,6 +177,7 @@ void    Channel::eraseUser(const std::string &nickname)
 {
     if (_userMap.find(nickname) != _userMap.end())
         _userMap.erase(nickname);
+    _nbUsers--;
 }
 
 // Grant / remove operator access

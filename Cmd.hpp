@@ -6,6 +6,8 @@ class Server;
 
 class Channel {
 private:
+    int         _nbUsers;
+    bool        _topicRestriction;
     bool        _isTopic;
     std::string _topicName;
     std::string _chanName;
@@ -21,6 +23,7 @@ public:
     std::string getChanName() const;
     bool        alreadyJoin(Server *server, Client *user, const std::string &nickname);
     void    	joinChan(Server *server, Client *user, const std::string &nickname, const std::string &chanName);
+    void        chanList(Client *user);
     void        grantOperator(Client *user, const std::string &nickname, Server *server, bool add);
     bool        isOps(const std::string &nickname);
     void        RPL(Client *user, Server *server, const std::string &nickname);

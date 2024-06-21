@@ -56,6 +56,7 @@ public:
     
     void        NICK(Client *client, const std::string &new_name);
     void        JOIN(const std::string &chanName, const std::string &nickname, Client *user);
+    void        LIST(Client *user);
     void        PART(Client *user, const std::string &chanName, const std::string &reason);
     void        PRIVMSG(int sender_fd, const std::string &target, const std::string &message);
 };

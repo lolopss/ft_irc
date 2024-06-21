@@ -179,12 +179,15 @@ int Server::exec_command(std::istringstream &iss, std::string &command, Client &
         //}
         JOIN(TchanName, client.get_nickname(), &client);
     }
-    else if (command == "/PART" || command == "/part"){
+    else if (command == "/PART" || command == "/part") {
         std::string chanName;
         std::string reason;
         iss >> chanName;
         iss >> reason;
         PART(&client, chanName, reason);
+    }
+    else if (command == "/LIST" || command == "/list") {
+        LIST(&client);
     }
     else if (command == "/PRIVMSG" || command == "/privmsg") {
         std::string target;
