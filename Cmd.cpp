@@ -64,7 +64,7 @@ void    Server::LIST(Client *user)
 
 /* ------------------------- Channel ------------------------- */
 
-Channel::Channel(const std::string &name) : _nbUsers(0), _isTopic(false), _chanName(name) { }
+Channel::Channel(const std::string &name) : _nbUsers(0), _topicRestriction(false), _isTopic(false), _chanName(name) { }
 Channel::~Channel() { clearMaps(); }
 
 
@@ -102,6 +102,7 @@ void    Channel::chanList(Client *user)
 
 void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
 {
+    std::cout << "In RPL\r\n";
     std::map<std::string, Client*>::iterator it;
 
     std::string noTopic = ":" + server->getServerName() + " 331 " + nickname + " " + _chanName + " :No topic is set\r\n"; // RPL 331 without topic
@@ -136,10 +137,10 @@ void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
 
   // -------------------> Commands <------------------- //
 
-void    TOPIC()
+/*void    Server::TOPIC(Client *client, const std::string &chanName, const std::string &topicName)
 {
-    
-}
+    _chanMap[chanName]
+}*/
 
 void    Server::PART(Client *user, const std::string &chanName, const std::string &reason)
 {
@@ -160,7 +161,6 @@ void    Server::PART(Client *user, const std::string &chanName, const std::strin
     {
         std::string noSuchChannel = ":" + _ServerName + " 403 " + user->get_nickname() + " " + chanName + ":No such channel\r\n";
         send(user->get_fd(), noSuchChannel.c_str(), noSuchChannel.size(), 0);
-        return ;
     }
 }
 
