@@ -58,6 +58,6 @@ public:
     void        LIST(Client *user);
     void        PART(Client *user, const std::string &chanName, const std::string &reason);
     void        PRIVMSG(int sender_fd, const std::string &target, const std::string &message);
-    void        PING(Client *client, std::string message);
+    void        PING(int fd, const std::string &message);
 };
 

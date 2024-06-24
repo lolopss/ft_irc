@@ -160,41 +160,33 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
     }
 }
 
-int Server::exec_command(std::istringstream &iss, std::string &command, Client &client, int &fd){
-    if (command == "/NICK" || command == "/nick") {
+int Server::exec_command(std::istringstream &iss, std::string &command, Client &client, int &fd) {
+    if (command == "NICK" || command == "nick") {
         std::string new_nick;
         iss >> new_nick;
         if (!new_nick.empty()) {
             NICK(&client, new_nick);
         }
     }
-    else if (command == "/JOIN" || command == "/join") {
-        //std::vector<std::string>    chanName;
-        std::string                 TchanName; iss >> TchanName;
-        //while (iss >> TchanName)
-        //{
-            //chanName.insert(TchanName);
-            if (TchanName.empty())
-                return 0;
-        //}
+    else if (command == "JOIN" || command == "join") {
+        std::string TchanName;
+        iss >> TchanName;
+        if (TchanName.empty()) return 0;
         JOIN(TchanName, client.get_nickname(), &client);
     }
-    else if (command == "/PING" || command == "/ping"){
+    else if (command == "PING" || command == "ping") {
         std::string msg;
         iss >> msg;
-        PING(&client, msg);
+        PING(fd, msg);
     }
-    else if (command == "/PART" || command == "/part"){
+    else if (command == "PART" || command == "part") {
         std::string chanName;
         std::string reason;
         iss >> chanName;
         iss >> reason;
         PART(&client, chanName, reason);
     }
-    else if (command == "/LIST" || command == "/list") {
-        LIST(&client);
-    }
-    else if (command == "/PRIVMSG" || command == "/privmsg") {
+    else if (command == "PRIVMSG" || command == "privmsg") {
         std::string target;
         iss >> target;
         std::string private_message;

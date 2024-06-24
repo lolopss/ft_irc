@@ -1,25 +1,29 @@
 #include "Cmd.hpp"
 
-void    Server::NICK(Client *client, const std::string &new_nick) {
+void Server::NICK(Client *client, const std::string &new_nick) {
+    // Vérification si le surnom est fourni
+    if (new_nick.empty()) {
+        std::string response = ":server 431 * :No nickname given\r\n";
+        send(client->get_fd(), response.c_str(), response.size(), 0);
+        return;
+    }
+
+    // Vérification si le surnom est déjà utilisé
     bool alr_exists = false;
     for (size_t i = 0; i < _clients.size(); i++) {
         if (new_nick == _clients[i].get_nickname()) {
             alr_exists = true;
-            std::string buff = new_nick + " already exists on this server.\n";
-            std::cerr << buff;
-            send(client->get_fd(), buff.c_str(), buff.size(), 0);
-            break;
+            std::string response = ":server 433 * " + new_nick + " :Nickname is already in use\r\n";
+            send(client->get_fd(), response.c_str(), response.size(), 0);
+            return ;
         }
     }
-    if (!alr_exists) {
-        std::string old_nick = client->get_nickname();
-        client->set_nickname(new_nick);
-        std::string confirmation = "Nickname changed to " + new_nick + "\r\n";
-        std::cout << "Client " << client->get_fd() << " changed nickname from " << old_nick << " to " << new_nick << "\n";
-        send(client->get_fd(), confirmation.c_str(), confirmation.size(), 0);
-    }
+    std::string old_nick = client->get_nickname();
+    client->set_nickname(new_nick);
+    std::string confirmation = ":server 001 " + new_nick + " :Nickname changed to " + new_nick + "\r\n";
+    std::cout << "Client " << client->get_fd() << " changed nickname from " << old_nick << " to " << new_nick << "\n";
+    send(client->get_fd(), confirmation.c_str(), confirmation.size(), 0);
 }
-
 
 void    Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user)
 {
@@ -228,9 +232,8 @@ void    Channel::clearMaps()
 
 std::string Channel::getChanName() const { return _chanName; }
 
-void	Server::PING(Client *client, std::string message)
-{
-	std::string response1 = client->get_nickname() + " PONG " + message + "\r\n";
-	send(client->get_fd(), response1.c_str(), response1.size(), 0);
+void Server::PING(int fd, const std::string &msg) {
+    std::string pong_response = "PONG " + msg + "\r\n";
+    send(fd, pong_response.c_str(), pong_response.size(), 0);
+    std::cout << "Sent to " << fd << ": " << pong_response << std::endl;
 }
-
