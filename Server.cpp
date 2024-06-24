@@ -131,7 +131,7 @@ void Server::acceptNewClient() {
 }
 
 void Server::broadcastMessage(const std::string &message, int sender_fd) {
-    if (message.size() <= 1)
+    if (message.size() < 1)
         return;
 
     std::string sender_nick;
@@ -160,43 +160,41 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
     }
 }
 
-int Server::exec_command(std::istringstream &iss, std::string &command, Client &client, int &fd) {
-    if (command == "NICK" || command == "nick") {
+bool Server::exec_command(std::istringstream &iss, const std::string &command, Client &client, int &fd) {
+    // Process known commands
+    if (command == "NICK") {
         std::string new_nick;
         iss >> new_nick;
-        if (!new_nick.empty()) {
-            NICK(&client, new_nick);
-        }
+        NICK(&client, new_nick);
     }
-    else if (command == "JOIN" || command == "join") {
-        std::string TchanName;
-        iss >> TchanName;
-        if (TchanName.empty()) return 0;
-        JOIN(TchanName, client.get_nickname(), &client);
-    }
-    else if (command == "PING" || command == "ping") {
+    else if (command == "USER") {
+        std::string username, hostname, servername, realname;
+        iss >> username >> hostname >> servername;
+        std::getline(iss, realname);
+        USER(&client, username, hostname, servername, realname);
+    } 
+    else if (command == "JOIN") {
+        std::string channel_name;
+        iss >> channel_name;
+        JOIN(channel_name, client.get_nickname(), &client);
+    } else if (command == "PART") {
+        std::string channel_name, reason;
+        iss >> channel_name;
+        std::getline(iss, reason);
+        PART(&client, channel_name, reason);
+    } else if (command == "PRIVMSG") {
+        std::string target, msg;
+        iss >> target;
+        std::getline(iss, msg);
+        PRIVMSG(fd, target, msg);
+    } else if (command == "PING") {
         std::string msg;
         iss >> msg;
         PING(fd, msg);
+    } else {
+        return false; // Not a command, handle as a regular message
     }
-    else if (command == "PART" || command == "part") {
-        std::string chanName;
-        std::string reason;
-        iss >> chanName;
-        iss >> reason;
-        PART(&client, chanName, reason);
-    }
-    else if (command == "PRIVMSG" || command == "privmsg") {
-        std::string target;
-        iss >> target;
-        std::string private_message;
-        std::getline(iss, private_message);
-        private_message = private_message.substr(1); // Remove ":" from message
-        PRIVMSG(fd, target, private_message);
-    }
-    else
-        return 0;
-    return 1;
+    return true; // Handled as a command
 }
 
 void Server::receiveNewData(int fd) {
@@ -215,12 +213,10 @@ void Server::receiveNewData(int fd) {
     std::string message(buffer);
     _partial_messages[fd] += message;
 
-    // Vérifiez si nous avons une commande complète (délimitée par "\r\n")
     size_t pos;
     while ((pos = _partial_messages[fd].find("\r\n")) != std::string::npos) {
-        // Extraire la commande complète
         std::string complete_command = _partial_messages[fd].substr(0, pos);
-        _partial_messages[fd].erase(0, pos + 2); // Supprimez aussi le "\r\n"
+        _partial_messages[fd].erase(0, pos + 2);
 
         if (!complete_command.empty()) {
             std::cout << "Received from " << fd << ": " << complete_command << std::endl;
@@ -237,13 +233,26 @@ void Server::receiveNewData(int fd) {
                 }
             }
 
-            if (!exec_command(iss, command, _clients[clientIndex], fd)) { // if there's no command, then send message
-                broadcastMessage(complete_command, fd);
+            Client &client = _clients[clientIndex];
+            if (!exec_command(iss, command, client, fd)) {
+                std::string channelName = client.get_current_channel();
+                if (!channelName.empty()) {
+                    Channel *channel = get_Channel(channelName);
+                    if (channel) {
+                        std::string full_message = client.get_nickname() + ": " + complete_command + "\r\n";
+                        channel->broadcastMessageToChan(full_message, fd);
+                    } else {
+                        std::string error_message = ":server 401 " + client.get_nickname() + " " + channelName + " :No such channel\r\n";
+                        send(fd, error_message.c_str(), error_message.size(), 0);
+                    }
+                } else {
+                    std::string error_message = ":server 404 " + client.get_nickname() + " :You are not in a channel\r\n";
+                    send(fd, error_message.c_str(), error_message.size(), 0);
+                }
             }
         }
     }
 }
-
 
 
 void Server::run() {

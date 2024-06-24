@@ -37,6 +37,7 @@ public:
 
     std::string getClientNickname(int client_fd);
     std::string getServerName() const;
+    Channel     *get_Channel(const std::string &chanName);
     void        sendWelcomeMessages(int client_fd);
     void        serverInit();
     void        serverSocket();
@@ -47,12 +48,13 @@ public:
     void        clearMap();
     void        clearClients(int fd);
     void        broadcastMessage(const std::string &message, int sender_fd);
-    int         exec_command(std::istringstream &iss, std::string &command, Client &client, int &fd);
+    bool        exec_command(std::istringstream &iss, const std::string &command, Client &client, int &fd);
     void        run();
     
     
     /*****************Commands(Cmd.cpp)*****************/
     
+    void        USER(Client *client, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname);
     void        NICK(Client *client, const std::string &new_name);
     void        JOIN(const std::string &chanName, const std::string &nickname, Client *user);
     void        LIST(Client *user);

@@ -1,5 +1,20 @@
 #include "Cmd.hpp"
 
+void Server::USER(Client *client, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname) {
+    if (client->is_registered()) {
+        std::string response = ":server 462 * :You may not reregister\r\n";
+        send(client->get_fd(), response.c_str(), response.size(), 0);
+        return;
+    }
+
+    client->set_username(username);
+    client->set_hostname(hostname);
+    client->set_servername(servername);
+    client->set_realname(realname);
+
+    client->set_registered(true);
+}
+
 void Server::NICK(Client *client, const std::string &new_nick) {
     // Vérification si le surnom est fourni
     if (new_nick.empty()) {
@@ -25,14 +40,14 @@ void Server::NICK(Client *client, const std::string &new_nick) {
     send(client->get_fd(), confirmation.c_str(), confirmation.size(), 0);
 }
 
-void    Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user)
+/*void    Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user)
 {
     if (_chanMap.find(chanName) != _chanMap.end())
     {
-        if (!_chanMap[chanName]->alreadyJoin(this, user, nickname))
-        {
-            return ;
-        }
+        // if (!_chanMap[chanName]->alreadyJoin(this, user, nickname))
+        // {
+        //     return ;
+        // }
         _chanMap[chanName]->joinChan(this, user, nickname, chanName);
     }
     else // create a new Channel if chanName not found as a Channel
@@ -46,8 +61,39 @@ void    Server::JOIN(const std::string &chanName, const std::string &nickname, C
     {
         std::cout << it->first << "\r\n";
     }
+}*/ //ANCIENNE JOIN (je laisse au cas ou)
+
+Channel *Server::get_Channel(const std::string &chanName){
+    std::map<std::string, Channel*>::iterator it = _chanMap.find(chanName);
+    if (it != _chanMap.end()) {
+        return it->second;
+    }
+    return NULL;
 }
 
+void Channel::broadcastMessageToChan(const std::string &message, int sender_fd) {
+    for (std::map<std::string, Client*>::iterator it = _userMap.begin(); it != _userMap.end(); ++it) {
+        if (it->second->get_fd() != sender_fd) {
+            send(it->second->get_fd(), message.c_str(), message.size(), 0);
+        }
+    }
+}
+
+void Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user) {
+    std::map<std::string, Channel*>::iterator it = _chanMap.find(chanName);
+    if (it == _chanMap.end()) {
+        Channel *newChannel = new Channel(chanName);
+        _chanMap[chanName] = newChannel;
+    }
+    _chanMap[chanName]->addUser(user);
+    std::string joinMsg = ":" + user->get_nickname() + " JOIN :" + chanName + "\r\n";
+    send(user->get_fd(), joinMsg.c_str(), joinMsg.size(), 0);
+    // Send RPL messages to the joining user
+    _chanMap[chanName]->RPL(user, this, nickname);
+    // Broadcast join message to other users in the channel
+    _chanMap[chanName]->broadcastMessageToChan(joinMsg, user->get_fd());
+    user->set_current_channel(chanName);
+}
 
 void    Server::LIST(Client *user)
 {
@@ -127,13 +173,9 @@ void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
     std::string endOfName = ":" + server->getServerName() + " 366 " + user->get_nickname() + " " + _chanName + " :End of /NAME list\r\n"; // RPL 366 end of users list
 
     if (!_isTopic)
-    {
         send(user->get_fd(), noTopic.c_str(), noTopic.size(), 0); // RPL 331
-    }
     else
-    {
         send(user->get_fd(), topic.c_str(), topic.size(), 0); // RPL 332
-    }
     send(user->get_fd(), namReply.c_str(), namReply.size(), 0); // RPL 353
     send(user->get_fd(), endOfName.c_str(), endOfName.size(), 0); // RPL 366
 }
@@ -172,13 +214,22 @@ void Server::PRIVMSG(int sender_fd, const std::string &target, const std::string
     std::string sender_nick = getClientNickname(sender_fd);
     std::string full_message = ":" + sender_nick + " PRIVMSG " + target + " :" + message + "\r\n";
     
+    // Check if the target is a user
     for (size_t i = 0; i < _clients.size(); ++i) {
         if (_clients[i].get_nickname() == target) {
             int target_fd = _clients[i].get_fd();
             send(target_fd, full_message.c_str(), full_message.size(), 0);
             std::cout << "Sent private message from " << sender_nick << " to " << target << ": " << message << std::endl;
-            return ;
+            return;
         }
+    }
+
+    // Check if the target is a channel
+    std::map<std::string, Channel*>::iterator chanIt = _chanMap.find(target);
+    if (chanIt != _chanMap.end()) {
+        chanIt->second->broadcastMessageToChan(full_message, sender_fd);
+        std::cout << "Sent channel message from " << sender_nick << " to channel " << target << ": " << message << std::endl;
+        return;
     }
     
     // If target not found, notify sender
@@ -195,6 +246,10 @@ bool    Channel::isOps(const std::string &nickname)
     return false;
 }
 
+void Channel::addUser(Client *user) {
+    _userMap[user->get_nickname()] = user;
+    _nbUsers++;
+}
 void    Channel::eraseUser(const std::string &nickname)
 {
     if (_userMap.find(nickname) != _userMap.end())

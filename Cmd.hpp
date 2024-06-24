@@ -29,4 +29,6 @@ public:
     void        RPL(Client *user, Server *server, const std::string &nickname);
     void        eraseUser(const std::string &nickname);
     void        clearMaps();
+    void        broadcastMessageToChan(const std::string &message, int sender_fd);
+    void        addUser(Client *user);
 };
