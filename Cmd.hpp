@@ -21,6 +21,7 @@ public:
     ~Channel();
 
     std::string getChanName() const;
+    int         getNbUser() const;
     bool        alreadyJoin(Server *server, Client *user, const std::string &nickname);
     void    	joinChan(Server *server, Client *user, const std::string &nickname, const std::string &chanName);
     void        chanList(Client *user);
@@ -32,4 +33,5 @@ public:
     void        addTopic(Client *client, Server *server, const std::string &topicName);
     void        broadcastMessageToChan(const std::string &message, int sender_fd);
     void        addUser(Client *user);
+    bool        isUserInChannel(const std::string &nickname) const;
 };

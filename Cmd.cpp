@@ -203,25 +203,38 @@ void    Channel::addTopic(Client *user, Server *server, const std::string &topic
     }
 }
 
-void    Server::PART(Client *user, const std::string &chanName, const std::string &reason)
-{
-    if (_chanMap.find(chanName) != _chanMap.end())
-    {
-        if (_chanMap[chanName]->isOps(user->get_nickname()))
-        {
-            _chanMap[chanName]->grantOperator(user, user->get_nickname(), this, false);
+void Server::PART(Client *user, const std::string &chanName, const std::string &reason) {
+    std::map<std::string, Channel*>::iterator it = _chanMap.find(chanName);
+    if (it != _chanMap.end()) {
+        Channel *channel = it->second;
+
+        // Ensure user is in the channel
+        if (channel->isUserInChannel(user->get_nickname())) {
+            // Construct PART message
+            std::string partMsg = ":" + user->get_nickname() + "!" + user->get_username() + "@" + user->get_hostname() + " PART " + chanName;
+            if (!reason.empty()) {
+                partMsg += " :" + reason;
+            }
+            partMsg += "\r\n";
+
+            // Send PART message to all users in the channel
+            channel->broadcastMessageToChan(partMsg, user->get_fd());
+
+            // Remove user from channel
+            channel->eraseUser(user->get_nickname());
+
+            // If the channel is empty, consider deleting it
+            if (channel->getNbUser() == 0) {
+                _chanMap.erase(it);
+                delete channel;
+            }
+        } else {
+            std::string error_message = ":server 442 " + user->get_nickname() + " " + chanName + " :You're not on that channel\r\n";
+            send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
         }
-        _chanMap[chanName]->eraseUser(user->get_nickname());
-        std::string partMsg = ":" + user->get_nickname() + "!" + user->get_nickname() + "@localhost PART " + chanName;
-        if (!reason.empty())
-            partMsg += " :" + reason;
-        partMsg += "\r\n";
-        send(user->get_fd(), partMsg.c_str(), partMsg.size(), 0);
-    }
-    else
-    {
-        std::string noSuchChannel = ":" + _ServerName + " 403 " + user->get_nickname() + " " + chanName + ":No such channel\r\n";
-        send(user->get_fd(), noSuchChannel.c_str(), noSuchChannel.size(), 0);
+    } else {
+        std::string error_message = ":server 403 " + user->get_nickname() + " " + chanName + " :No such channel\r\n";
+        send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
     }
 }
 
@@ -261,15 +274,27 @@ bool    Channel::isOps(const std::string &nickname)
     return false;
 }
 
+bool Channel::isUserInChannel(const std::string &nickname) const {
+    return _userMap.find(nickname) != _userMap.end();
+}
+
 void Channel::addUser(Client *user) {
     _userMap[user->get_nickname()] = user;
     _nbUsers++;
 }
 void    Channel::eraseUser(const std::string &nickname)
 {
-    if (_userMap.find(nickname) != _userMap.end())
+    if (_userMap.find(nickname) != _userMap.end()){
         _userMap.erase(nickname);
-    _nbUsers--;
+        _nbUsers--;
+    }
+}:
+void    Channel::eraseUser(const std::string &nickname)
+{
+    if (_userMap.find(nickname) != _userMap.end()){
+        _userMap.erase(nickname);
+        _nbUsers--;
+    }
 }
 
 // Grant / remove operator access
@@ -302,6 +327,7 @@ void    Channel::clearMaps()
 
 std::string Channel::getChanName() const { return _chanName; }
 
+int         Channel::getNbUser() const { return _nbUsers; }
 void Server::PING(int fd, const std::string &msg) {
     std::string pong_response = "PONG " + msg + "\r\n";
     send(fd, pong_response.c_str(), pong_response.size(), 0);
