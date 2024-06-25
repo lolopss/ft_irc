@@ -183,18 +183,35 @@ void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
 
   // -------------------> Commands <------------------- //
 
-void    Server::TOPIC(Client *client, const std::string &chanName, const std::string &topicName)
+void    Server::TOPIC(Client *user, const std::string &chanName, const std::string &topicName)
 {
-    _chanMap[chanName]->addTopic(client, this, topicName);
+    if (_chanMap.find(chanName) != _chanMap.end())
+    {
+        _chanMap[chanName]->addTopic(user, this, topicName);
+    }
+    else
+    {
+        std::string error_message = ":" + _ServerName + " 442 " + user->get_nickname() + " " + chanName + " :You're not on that channel\r\n";
+        send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
+    }
 }
 
 void    Channel::addTopic(Client *user, Server *server, const std::string &topicName)
 {
     if (!topicName.empty())
     {
-        _topicName = topicName;
-        std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@localhost " + _chanName + " :" + _topicName + "\r\n";
-        send(user->get_fd(), setTopic.c_str(), setTopic.size(), 0);
+        if (topicName == ":")
+        {
+            _topicName = "";
+            std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@localhost " + _chanName + " :" + _topicName + "\r\n";
+            send(user->get_fd(), setTopic.c_str(), setTopic.size(), 0);
+        }
+        else
+        {
+            _topicName = topicName.substr(1);
+            std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@localhost " + _chanName + " :" + _topicName + "\r\n";
+            send(user->get_fd(), setTopic.c_str(), setTopic.size(), 0);
+        }
     }
     else
     {
@@ -282,13 +299,7 @@ void Channel::addUser(Client *user) {
     _userMap[user->get_nickname()] = user;
     _nbUsers++;
 }
-void    Channel::eraseUser(const std::string &nickname)
-{
-    if (_userMap.find(nickname) != _userMap.end()){
-        _userMap.erase(nickname);
-        _nbUsers--;
-    }
-}:
+
 void    Channel::eraseUser(const std::string &nickname)
 {
     if (_userMap.find(nickname) != _userMap.end()){

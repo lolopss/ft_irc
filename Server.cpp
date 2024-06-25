@@ -160,7 +160,7 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
     }
 }
 
-bool Server::exec_command(std::istringstream &iss, const std::string &command, Client &client, int &fd) {
+bool Server::exec_command(std::istringstream &iss, const std::string &command, Client &client, const std::string &msg) {
     // Process known commands
     if (command == "NICK") {
         std::string new_nick;
@@ -183,19 +183,25 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
     } else if (command == "LIST" || command == "list") {
         LIST(&client);
     } else if (command == "TOPIC" || command == "topic") {
-        std::string chanName, topicName;
+        std::string chanName, topicName, tmp;
         iss >> chanName;
-        iss >> topicName;
-        TOPIC(&client, chanName, topicName);
+        iss >> tmp;
+        if (!tmp.empty())
+        {
+            if ((int)msg.find(":") != -1)
+                topicName = msg.substr(msg.find(":"));
+        }
+        if (!chanName.empty())
+            TOPIC(&client, chanName, topicName);
     } else if (command == "PRIVMSG") {
         std::string target, msg;
         iss >> target;
         std::getline(iss, msg);
-        PRIVMSG(fd, target, msg);
+        PRIVMSG(client.get_fd(), target, msg);
     } else if (command == "PING") {
         std::string msg;
         iss >> msg;
-        PING(fd, msg);
+        PING(client.get_fd(), msg);
     } else {
         return false; // Not a command, handle as a regular message
     }
@@ -239,7 +245,7 @@ void Server::receiveNewData(int fd) {
             }
 
             Client &client = _clients[clientIndex];
-            if (!exec_command(iss, command, client, fd)) {
+            if (!exec_command(iss, command, client, complete_command)) {
                 std::string channelName = client.get_current_channel();
                 if (!channelName.empty()) {
                     Channel *channel = get_Channel(channelName);
