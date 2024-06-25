@@ -175,10 +175,13 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         std::string channel_name;
         iss >> channel_name;
         JOIN(channel_name, client.get_nickname(), &client);
-    } else if (command == "PART") {
-        std::string channel_name, reason;
+    }
+    else if (command == "PART") {
+        std::string channel_name;
         iss >> channel_name;
+        std::string reason;
         std::getline(iss, reason);
+        reason = reason.substr(reason.find_first_not_of(" :"));
         PART(&client, channel_name, reason);
     } else if (command == "LIST" || command == "list") {
         LIST(&client);

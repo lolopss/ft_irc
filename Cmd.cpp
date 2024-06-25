@@ -152,7 +152,6 @@ void    Channel::chanList(Client *user)
 
 void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
 {
-    std::cout << "In RPL\r\n";
     std::map<std::string, Client*>::iterator it;
 
     std::string noTopic = ":" + server->getServerName() + " 331 " + nickname + " " + _chanName + " :No topic is set\r\n"; // RPL 331 without topic
@@ -220,27 +219,24 @@ void    Channel::addTopic(Client *user, Server *server, const std::string &topic
     }
 }
 
+void Client::handlePartCommand(const std::string &channelName) {
+    if (_current_channel == channelName)
+        _current_channel.clear();
+}
+
 void Server::PART(Client *user, const std::string &chanName, const std::string &reason) {
     std::map<std::string, Channel*>::iterator it = _chanMap.find(chanName);
     if (it != _chanMap.end()) {
         Channel *channel = it->second;
-
-        // Ensure user is in the channel
         if (channel->isUserInChannel(user->get_nickname())) {
-            // Construct PART message
             std::string partMsg = ":" + user->get_nickname() + "!" + user->get_username() + "@" + user->get_hostname() + " PART " + chanName;
             if (!reason.empty()) {
                 partMsg += " :" + reason;
             }
             partMsg += "\r\n";
-
-            // Send PART message to all users in the channel
             channel->broadcastMessageToChan(partMsg, user->get_fd());
-
-            // Remove user from channel
+            user->handlePartCommand(chanName);
             channel->eraseUser(user->get_nickname());
-
-            // If the channel is empty, consider deleting it
             if (channel->getNbUser() == 0) {
                 _chanMap.erase(it);
                 delete channel;
@@ -253,7 +249,48 @@ void Server::PART(Client *user, const std::string &chanName, const std::string &
         std::string error_message = ":server 403 " + user->get_nickname() + " " + chanName + " :No such channel\r\n";
         send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
     }
+    std::cout << user->get_current_channel() << "= CURRENT CHANNEL JSGDFBKJGBFDA\n";
 }
+
+bool Channel::isEmpty()
+{
+	if (_userMap.empty())
+		return true;
+	return false;
+}
+
+std::string Client::getID()
+{
+	std::string ID = ":" + this->_nickname + "!" + this->_username + "@" + this->_IPadd;
+	return (ID);
+}
+
+// void	Server::PART(Client *user, const std::string &reason)
+// {
+// 	std::map<std::string, Channel*>::iterator it;
+// 	for (it = _chanMap.begin(); it != _chanMap.end(); ++it)
+// 	{
+// 		std::string name = it->first;
+// 		Channel* channel = it->second;
+//             std::cout << "NAME = : " << name << " AND REASON = " << reason << std::endl;
+        
+// 		if (reason == name)
+// 		{
+//             std::cout << "mgfdalkngsfdgsdgsdfgsdfgsdf\n";
+// 			std::string response4 = user->getID() + " PART " + channel->getChanName() + " :" + user->get_nickname() + "\r\n";
+// 			send(user->get_fd(), response4.c_str(), response4.size(), 0);
+// 			channel->broadcastMessageToChan(response4, user->get_fd());
+// 			user->set_current_channel("");
+// 			channel->eraseUser(user->get_nickname());
+// 			if (channel->isEmpty() == true)
+// 			{
+// 				delete channel;
+// 				_chanMap.erase(it);
+// 			}
+// 			return;
+// 		}
+// 	}
+// }
 
 void Server::PRIVMSG(int sender_fd, const std::string &target, const std::string &message) {
     std::string sender_nick = getClientNickname(sender_fd);
@@ -298,6 +335,7 @@ bool Channel::isUserInChannel(const std::string &nickname) const {
 void Channel::addUser(Client *user) {
     _userMap[user->get_nickname()] = user;
     _nbUsers++;
+    std::cout << "User " << user->get_nickname() << " added to channel " << _chanName << ". Current users: " << _nbUsers << std::endl;
 }
 
 void    Channel::eraseUser(const std::string &nickname)
@@ -305,6 +343,7 @@ void    Channel::eraseUser(const std::string &nickname)
     if (_userMap.find(nickname) != _userMap.end()){
         _userMap.erase(nickname);
         _nbUsers--;
+        std::cout << "User " << nickname << " removed from channel " << _chanName << ". Current users: " << _nbUsers << std::endl;
     }
 }
 

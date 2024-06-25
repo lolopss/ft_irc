@@ -34,4 +34,5 @@ public:
     void        broadcastMessageToChan(const std::string &message, int sender_fd);
     void        addUser(Client *user);
     bool        isUserInChannel(const std::string &nickname) const;
+    bool        isEmpty();
 };

@@ -40,6 +40,8 @@ class Client {
         int         get_fd() const;
         void        set_fd(int fd);
 
+        std::string getID(void);
+
         std::string get_nickname() const;
         void        set_nickname(std::string name);
 
@@ -61,4 +63,5 @@ class Client {
         bool        is_registered() const { return _registered; }
         void        set_registered(bool registered) { _registered = registered; }
         void        set_IPADD(const std::string& ip);
+        void        handlePartCommand(const std::string &channelName);
 };

@@ -46,6 +46,7 @@ public:
     static void SignalHandler(int signum);
     void        closeFds();
     void        clearMap();
+    
     void        clearClients(int fd);
     void        broadcastMessage(const std::string &message, int sender_fd);
     bool        exec_command(std::istringstream &iss, const std::string &command, Client &client, const std::string &msg);
@@ -58,6 +59,7 @@ public:
     void        NICK(Client *client, const std::string &new_name);
     void        JOIN(const std::string &chanName, const std::string &nickname, Client *user);
     void        LIST(Client *user);
+    // void        PART(Client *user, const std::string &reason);
     void        PART(Client *user, const std::string &chanName, const std::string &reason);
     void        TOPIC(Client *client, const std::string &chanName, const std::string &topicName);
     void        PRIVMSG(int sender_fd, const std::string &target, const std::string &message);
