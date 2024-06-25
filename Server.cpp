@@ -166,14 +166,12 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         std::string new_nick;
         iss >> new_nick;
         NICK(&client, new_nick);
-    }
-    else if (command == "USER") {
+    } else if (command == "USER") {
         std::string username, hostname, servername, realname;
         iss >> username >> hostname >> servername;
         std::getline(iss, realname);
         USER(&client, username, hostname, servername, realname);
-    } 
-    else if (command == "JOIN") {
+    } else if (command == "JOIN") {
         std::string channel_name;
         iss >> channel_name;
         JOIN(channel_name, client.get_nickname(), &client);
@@ -182,6 +180,13 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         iss >> channel_name;
         std::getline(iss, reason);
         PART(&client, channel_name, reason);
+    } else if (command == "LIST" || command == "list") {
+        LIST(&client);
+    } else if (command == "TOPIC" || command == "topic") {
+        std::string chanName, topicName;
+        iss >> chanName;
+        iss >> topicName;
+        TOPIC(&client, chanName, topicName);
     } else if (command == "PRIVMSG") {
         std::string target, msg;
         iss >> target;

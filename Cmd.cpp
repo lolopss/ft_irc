@@ -183,10 +183,25 @@ void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
 
   // -------------------> Commands <------------------- //
 
-/*void    Server::TOPIC(Client *client, const std::string &chanName, const std::string &topicName)
+void    Server::TOPIC(Client *client, const std::string &chanName, const std::string &topicName)
 {
-    _chanMap[chanName]
-}*/
+    _chanMap[chanName]->addTopic(client, this, topicName);
+}
+
+void    Channel::addTopic(Client *user, Server *server, const std::string &topicName)
+{
+    if (!topicName.empty())
+    {
+        _topicName = topicName;
+        std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@localhost " + _chanName + " :" + _topicName + "\r\n";
+        send(user->get_fd(), setTopic.c_str(), setTopic.size(), 0);
+    }
+    else
+    {
+        std::string topic = ":" + server->getServerName() + " 332 " + user->get_nickname() + " " + _chanName + " :" + _topicName + "\r\n";
+        send(user->get_fd(), topic.c_str(), topic.size(), 0);
+    }
+}
 
 void    Server::PART(Client *user, const std::string &chanName, const std::string &reason)
 {
