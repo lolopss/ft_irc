@@ -181,7 +181,8 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         iss >> channel_name;
         std::string reason;
         std::getline(iss, reason);
-        reason = reason.substr(reason.find_first_not_of(" :"));
+        if ((int)reason.find_first_not_of(" :") != -1)
+            reason = reason.substr(reason.find_first_not_of(" :"));
         PART(&client, channel_name, reason);
     } else if (command == "LIST" || command == "list") {
         LIST(&client);

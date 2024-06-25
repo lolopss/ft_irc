@@ -234,12 +234,25 @@ void Server::PART(Client *user, const std::string &chanName, const std::string &
                 partMsg += " :" + reason;
             }
             partMsg += "\r\n";
+            send(user->get_fd(), partMsg.c_str(), partMsg.size(), 0);
             channel->broadcastMessageToChan(partMsg, user->get_fd());
             user->handlePartCommand(chanName);
             channel->eraseUser(user->get_nickname());
             if (channel->getNbUser() == 0) {
+                std::cout << "in condition\r\n";
+                std::map<std::string, Channel*>::iterator test;
+                for (test = _chanMap.begin(); test != _chanMap.end(); test++)
+                {
+                    std::cout << "before" << test->first << "\r\n";
+                }
+                delete it->second;
                 _chanMap.erase(it);
-                delete channel;
+                //delete channel;
+                for (test = _chanMap.begin(); test != _chanMap.end(); test++)
+                {
+                    std::cout << "after" << test->first << "\r\n";
+                }
+                std::cout << "afterafter\r\n";
             }
         } else {
             std::string error_message = ":server 442 " + user->get_nickname() + " " + chanName + " :You're not on that channel\r\n";
