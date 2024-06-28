@@ -6,17 +6,21 @@ class Server;
 
 class Channel {
     private:
-        int         _nbUsers;
-        bool        _topicRestriction;
-        bool        _isTopic;
-        std::string _topicName;
-        std::string _chanName;
+        int                 _nbUsers;
+        int                 _userLimit;
+        bool                _topicRestriction;
+        bool                _isTopic;
+        std::string         _topicName;
+        std::string         _chanName;
+        const bool          _modeI;
+        const bool          _modeT;
+        const bool          _modeK;
+        const bool          _modeL;
+        const std::string   _channelPassword;
         // map to get every users datas
         std::map<std::string, Client*> _userMap;
         // map to get every ops on a channel
         std::map<std::string, Client*> _userOps;
-        bool        _modeI;
-        bool        _modeT;
 
     public:
         Channel();
@@ -38,4 +42,6 @@ class Channel {
         void        addUser(Client *user);
         bool        isUserInChannel(const std::string &nickname) const;
         bool        isEmpty();
+
+        void        handleModeI(bool activate) const;
 };
