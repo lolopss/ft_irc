@@ -15,7 +15,7 @@
 #include <utility> // std::pair / std::make_pair
 #include <iterator>
 #include "Client.hpp"
-#include "Cmd.hpp"
+#include "Channel.hpp"
 
 class Channel;
 

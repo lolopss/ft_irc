@@ -1,4 +1,4 @@
-#include "Cmd.hpp"
+#include "Channel.hpp"
 
 void Server::USER(Client *client, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname) {
     if (client->is_registered()) {
@@ -239,30 +239,18 @@ void Server::PART(Client *user, const std::string &chanName, const std::string &
             user->handlePartCommand(chanName);
             channel->eraseUser(user->get_nickname());
             if (channel->getNbUser() == 0) {
-                std::cout << "in condition\r\n";
-                std::map<std::string, Channel*>::iterator test;
-                for (test = _chanMap.begin(); test != _chanMap.end(); test++)
-                {
-                    std::cout << "before" << test->first << "\r\n";
-                }
-                delete it->second;
+                std::cout << "Channel is empty, deleting channel: " << chanName << "\n";
+                delete channel;
                 _chanMap.erase(it);
-                //delete channel;
-                for (test = _chanMap.begin(); test != _chanMap.end(); test++)
-                {
-                    std::cout << "after" << test->first << "\r\n";
-                }
-                std::cout << "afterafter\r\n";
             }
-        } else {
+        } else { // User is not in the channel, send an error message
             std::string error_message = ":server 442 " + user->get_nickname() + " " + chanName + " :You're not on that channel\r\n";
             send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
         }
-    } else {
+    } else { // Channel does not exist, send an error message
         std::string error_message = ":server 403 " + user->get_nickname() + " " + chanName + " :No such channel\r\n";
         send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
     }
-    std::cout << user->get_current_channel() << "= CURRENT CHANNEL JSGDFBKJGBFDA\n";
 }
 
 bool Channel::isEmpty()

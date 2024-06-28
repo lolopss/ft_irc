@@ -161,7 +161,6 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
 }
 
 bool Server::exec_command(std::istringstream &iss, const std::string &command, Client &client, const std::string &msg) {
-    // Process known commands
     if (command == "NICK") {
         std::string new_nick;
         iss >> new_nick;
@@ -260,13 +259,15 @@ void Server::receiveNewData(int fd) {
                         std::string error_message = ":server 401 " + client.get_nickname() + " " + channelName + " :No such channel\r\n";
                         send(fd, error_message.c_str(), error_message.size(), 0);
                     }
-                } else {
-                    std::string error_message = ":server 404 " + client.get_nickname() + " :You are not in a channel\r\n";
-                    send(fd, error_message.c_str(), error_message.size(), 0);
                 }
+                // else {
+                //     std::string error_message = ":server 404 " + client.get_nickname() + " :You are not in a channel\r\nReal message = " + command + "\r\n";
+                //     send(fd, error_message.c_str(), error_message.size(), 0);
+                // }
             }
         }
     }
+    
 }
 
 
