@@ -7,7 +7,7 @@ class Server;
 class Channel {
     private:
         int                 _nbUsers;
-        int                 _userLimit;
+        const int           _userLimit;
         bool                _topicRestriction;
         bool                _isTopic;
         std::string         _topicName;
@@ -15,6 +15,7 @@ class Channel {
         const bool          _modeI;
         const bool          _modeT;
         const bool          _modeK;
+        const bool          _modeO;
         const bool          _modeL;
         const std::string   _channelPassword;
         // map to get every users datas
@@ -44,4 +45,8 @@ class Channel {
         bool        isEmpty();
 
         void        handleModeI(bool activate) const;
+        void        handleModeT(bool activate) const;
+        void        handleModeK(bool activate, const std::string &mdp) const;
+        void        handleModeO(bool activate, const std::string &nickname);
+        void        handleModeL(bool activate, const int &userLimit) const;
 };

@@ -38,7 +38,7 @@ void	Channel::handleModeO(bool activate, const std::string &nickname)
 		grantOperator(user, nickname, server, false);
 }
 
-void	Channel::handleModeL(bool activate, const int &userLimit)
+void	Channel::handleModeL(bool activate, const int &userLimit) const
 {
 	if (activate)
 	{

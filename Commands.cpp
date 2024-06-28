@@ -134,8 +134,8 @@ void    Server::LIST(Client *user)
 
 /* ------------------------- Channel ------------------------- */
 
-Channel::Channel(const std::string &name) : _nbUsers(0), _topicRestriction(false), _isTopic(false), _chanName(name), \
-_modeI(false) { }
+Channel::Channel(const std::string &name) : _nbUsers(0), _userLimit(0), _topicRestriction(false), _isTopic(false), _chanName(name), \
+_modeI(false), _modeT(true), _modeK(false), _modeO(false), _modeL(false), _channelPassword("") { }
 Channel::~Channel() { clearMaps(); }
 
 
