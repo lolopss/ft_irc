@@ -193,7 +193,10 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         if (!tmp.empty())
         {
             if ((int)msg.find(":") != -1)
+            {
+                std::cout << "In condition : \r\n";
                 topicName = msg.substr(msg.find(":"));
+            }
         }
         if (!chanName.empty())
             TOPIC(&client, chanName, topicName);
