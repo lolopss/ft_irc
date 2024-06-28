@@ -205,6 +205,10 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         std::string msg;
         iss >> msg;
         PING(client.get_fd(), msg);
+    } else if (command == "INVITE") {
+        std::string nickname, channel_name;
+        iss >> nickname >> channel_name;
+        INVITE(&client, nickname, channel_name);
     } else {
         return false; // Not a command, handle as a regular message
     }

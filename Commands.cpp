@@ -40,28 +40,48 @@ void Server::NICK(Client *client, const std::string &new_nick) {
     send(client->get_fd(), confirmation.c_str(), confirmation.size(), 0);
 }
 
-/*void    Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user)
-{
-    if (_chanMap.find(chanName) != _chanMap.end())
-    {
-        // if (!_chanMap[chanName]->alreadyJoin(this, user, nickname))
-        // {
-        //     return ;
-        // }
-        _chanMap[chanName]->joinChan(this, user, nickname, chanName);
+Client* Server::findClientByNickname(const std::string& nickname) {
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        if (_clients[i].get_nickname() == nickname) {
+            return &_clients[i];
+        }
     }
-    else // create a new Channel if chanName not found as a Channel
-    {
-        Channel *newChan = new Channel(chanName);
-        _chanMap.insert(std::make_pair(chanName, newChan));
-        _chanMap[chanName]->joinChan(this, user, nickname, chanName);
-        _chanMap[chanName]->grantOperator(user, nickname, this, true);
+    return NULL; // Return nullptr if no client is found with the given nickname
+}
+
+void Server::INVITE(Client *inviter, const std::string &nickname, const std::string &channelName) {
+    // Find the invited user
+    Client *invitedUser = findClientByNickname(nickname);
+    if (!invitedUser) {
+        std::string error_message = ":server 401 " + inviter->get_nickname() + " " + nickname + " :No such nick/channel\r\n";
+        send(inviter->get_fd(), error_message.c_str(), error_message.size(), 0);
+        return;
     }
-    for (std::map<std::string, Channel*>::iterator it = _chanMap.begin(); it != _chanMap.end(); it++)
-    {
-        std::cout << it->first << "\r\n";
+
+    // Find the channel
+    std::map<std::string, Channel*>::iterator it = _chanMap.find(channelName);
+    if (it == _chanMap.end()) {
+        std::string error_message = ":server 403 " + inviter->get_nickname() + " " + channelName + " :No such channel\r\n";
+        send(inviter->get_fd(), error_message.c_str(), error_message.size(), 0);
+        return;
     }
-}*/ //ANCIENNE JOIN (je laisse au cas ou)
+    Channel *channel = it->second;
+
+    // Check if inviter is in the channel
+    if (!channel->isUserInChannel(inviter->get_nickname())) {
+        std::string error_message = ":server 442 " + inviter->get_nickname() + " " + channelName + " :You're not on that channel\r\n";
+        send(inviter->get_fd(), error_message.c_str(), error_message.size(), 0);
+        return;
+    }
+
+    // Send invite message to the invited user
+    std::string invite_message = ":" + inviter->get_nickname() + "!" + inviter->get_username() + "@" + inviter->get_hostname() + " INVITE " + invitedUser->get_nickname() + " :" + channelName + "\r\n";
+    send(invitedUser->get_fd(), invite_message.c_str(), invite_message.size(), 0);
+
+    // Notify inviter that the invite was sent
+    std::string confirm_message = ":server 341 " + inviter->get_nickname() + " " + invitedUser->get_nickname() + " " + channelName + "\r\n";
+    send(inviter->get_fd(), confirm_message.c_str(), confirm_message.size(), 0);
+}
 
 Channel *Server::get_Channel(const std::string &chanName){
     std::map<std::string, Channel*>::iterator it = _chanMap.find(chanName);
@@ -260,65 +280,47 @@ bool Channel::isEmpty()
 	return false;
 }
 
-std::string Client::getID()
+std::string Client::getID(void)
 {
 	std::string ID = ":" + this->_nickname + "!" + this->_username + "@" + this->_IPadd;
 	return (ID);
 }
 
-// void	Server::PART(Client *user, const std::string &reason)
-// {
-// 	std::map<std::string, Channel*>::iterator it;
-// 	for (it = _chanMap.begin(); it != _chanMap.end(); ++it)
-// 	{
-// 		std::string name = it->first;
-// 		Channel* channel = it->second;
-//             std::cout << "NAME = : " << name << " AND REASON = " << reason << std::endl;
-        
-// 		if (reason == name)
-// 		{
-//             std::cout << "mgfdalkngsfdgsdgsdfgsdfgsdf\n";
-// 			std::string response4 = user->getID() + " PART " + channel->getChanName() + " :" + user->get_nickname() + "\r\n";
-// 			send(user->get_fd(), response4.c_str(), response4.size(), 0);
-// 			channel->broadcastMessageToChan(response4, user->get_fd());
-// 			user->set_current_channel("");
-// 			channel->eraseUser(user->get_nickname());
-// 			if (channel->isEmpty() == true)
-// 			{
-// 				delete channel;
-// 				_chanMap.erase(it);
-// 			}
-// 			return;
-// 		}
-// 	}
-// }
-
-void Server::PRIVMSG(int sender_fd, const std::string &target, const std::string &message) {
-    std::string sender_nick = getClientNickname(sender_fd);
-    std::string full_message = ":" + sender_nick + " PRIVMSG " + target + " :" + message + "\r\n";
-    
-    // Check if the target is a user
+Client* Server::getClientByFd(int fd) {
     for (size_t i = 0; i < _clients.size(); ++i) {
-        if (_clients[i].get_nickname() == target) {
-            int target_fd = _clients[i].get_fd();
-            send(target_fd, full_message.c_str(), full_message.size(), 0);
-            std::cout << "Sent private message from " << sender_nick << " to " << target << ": " << message << std::endl;
-            return;
-        }
+        if (_clients[i].get_fd() == fd) 
+            return &_clients[i];
     }
+    return NULL;
+}
 
-    // Check if the target is a channel
-    std::map<std::string, Channel*>::iterator chanIt = _chanMap.find(target);
-    if (chanIt != _chanMap.end()) {
-        chanIt->second->broadcastMessageToChan(full_message, sender_fd);
-        std::cout << "Sent channel message from " << sender_nick << " to channel " << target << ": " << message << std::endl;
+void Server::PRIVMSG(int senderFd, const std::string &target, const std::string &message) {
+    Client *sender = getClientByFd(senderFd);
+    if (!sender) {
+        std::cerr << "Sender not found for FD: " << senderFd << std::endl;
         return;
     }
-    
-    // If target not found, notify sender
-    std::string error_message = ":" + _ServerName + " 401 " + sender_nick + " " + target + " :No such nick/channel\r\n";
-    send(sender_fd, error_message.c_str(), error_message.size(), 0);
+    std::string fullMessage = sender->getID() + " PRIVMSG " + target + " :" + message + "\r\n";
+    if (target[0] == '#') {
+        Channel *channel = get_Channel(target);
+        if (channel) {
+            channel->broadcastMessageToChan(fullMessage, senderFd);
+        } else {
+            std::string errorMessage = ":server 403 " + sender->getID() + " " + target + " :No such channel\r\n";
+            send(senderFd, errorMessage.c_str(), errorMessage.size(), 0);
+        }
+    } else {
+        // Send message to a specific user
+        Client *receiver = findClientByNickname(target);
+        if (receiver) {
+            send(receiver->get_fd(), fullMessage.c_str(), fullMessage.size(), 0);
+        } else {
+            std::string errorMessage = ":server 401 " + sender->get_nickname() + " " + target + " :No such nick/channel\r\n";
+            send(senderFd, errorMessage.c_str(), errorMessage.size(), 0);
+        }
+    }
 }
+
 
   // -------------------> Others <------------------- //
 

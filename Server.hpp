@@ -38,6 +38,8 @@ public:
     std::string getClientNickname(int client_fd);
     std::string getServerName() const;
     Channel     *get_Channel(const std::string &chanName);
+    Client      *findClientByNickname(const std::string& nickname);
+    Client      *getClientByFd(int fd);
     void        sendWelcomeMessages(int client_fd);
     void        serverInit();
     void        serverSocket();
@@ -59,10 +61,10 @@ public:
     void        NICK(Client *client, const std::string &new_name);
     void        JOIN(const std::string &chanName, const std::string &nickname, Client *user);
     void        LIST(Client *user);
-    // void        PART(Client *user, const std::string &reason);
     void        PART(Client *user, const std::string &chanName, const std::string &reason);
     void        TOPIC(Client *client, const std::string &chanName, const std::string &topicName);
     void        PRIVMSG(int sender_fd, const std::string &target, const std::string &message);
     void        PING(int fd, const std::string &message);
+    void        INVITE(Client *inviter, const std::string &nickname, const std::string &channelName);
 };
 
