@@ -4,7 +4,7 @@ FLAG = -Wall -Wextra -Werror -std=c++98 -g3
 SRCS = main.cpp		\
 		Client.cpp	\
 		Server.cpp	\
-		Cmd.cpp		
+		Commands.cpp		
 OBJS = $(SRCS:.cpp=.o)
 INCLUDE = -I.
 
