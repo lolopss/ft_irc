@@ -193,12 +193,30 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         {
             if ((int)msg.find(":") != -1)
             {
-                std::cout << "In condition : \r\n";
                 topicName = msg.substr(msg.find(":"));
             }
         }
         if (!chanName.empty())
             TOPIC(&client, chanName, topicName);
+    } else if (command == "MODE") {
+        std::string mode, chanName, tmp;
+        bool        activate = false;
+        iss >> chanName;
+        iss >> tmp;
+        if (!tmp.empty() && (tmp[0] == '+' || tmp[0] == '-'))
+        {
+            if ((int)msg.find("+") != -1)
+            {
+                mode = msg.substr(msg.find("+") + 1);
+                activate = true;
+            }
+            else if ((int)msg.find("-") != -1)
+            {
+                mode = msg.substr(msg.find("-") + 1);
+            }
+        }
+        if (!mode.empty())
+            MODE(activate, chanName, mode, &client);
     } else if (command == "PRIVMSG") {
         std::string target, msg;
         iss >> target;

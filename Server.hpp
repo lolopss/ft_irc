@@ -66,5 +66,6 @@ public:
     void        PRIVMSG(int sender_fd, const std::string &target, const std::string &message);
     void        PING(int fd, const std::string &message);
     void        INVITE(Client *inviter, const std::string &nickname, const std::string &channelName);
+    void        MODE(bool activate, const std::string &chanName, const std::string &mode, Client *client);
 };
 

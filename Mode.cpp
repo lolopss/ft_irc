@@ -1,6 +1,8 @@
 #include "Channel.hpp"
 
-void	Channel::handleModeI(bool activate) const
+// 662 ['+' | '-']<mode_char> :<warning>
+
+void	Channel::handleModeI(bool activate)
 {
 	if (activate)
 		_modeI = true;
@@ -8,7 +10,7 @@ void	Channel::handleModeI(bool activate) const
 		_modeI = false;
 }
 
-void	Channel::handleModeT(bool activate) const
+void	Channel::handleModeT(bool activate)
 {
 	if (activate)
 		_modeT = true;
@@ -16,7 +18,7 @@ void	Channel::handleModeT(bool activate) const
 		_modeT = false;
 }
 
-void	Channel::handleModeK(bool activate, const std::string &mdp) const
+void	Channel::handleModeK(bool activate, const std::string &mdp)
 {
 	if (activate)
 	{
@@ -30,7 +32,7 @@ void	Channel::handleModeK(bool activate, const std::string &mdp) const
 	}
 }
 
-void	Channel::handleModeO(bool activate, const std::string &nickname)
+void	Channel::handleModeO(bool activate, const std::string &nickname, Client *user, Server *server)
 {
 	if (activate)
 		grantOperator(user, nickname, server, true);
@@ -38,7 +40,7 @@ void	Channel::handleModeO(bool activate, const std::string &nickname)
 		grantOperator(user, nickname, server, false);
 }
 
-void	Channel::handleModeL(bool activate, const int &userLimit) const
+void	Channel::handleModeL(bool activate, const int &userLimit)
 {
 	if (activate)
 	{

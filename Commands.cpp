@@ -151,10 +151,8 @@ void    Channel::joinChan(Server *server, Client *user, const std::string &nickn
 
 bool    Channel::alreadyJoin(Server *server, Client *user, const std::string &nickname)
 {
-    std::cout << "in function\r\n";
     if (_userMap.find(nickname) != _userMap.end())
     {
-        std::cout << "in condition\r\n";
         std::string alrOnChannel = ":" + server->getServerName() + " 338 " + nickname + " " + _chanName + ":You are already on that channel\r\n"; // RPL 338 user already on channel
         send(user->get_fd(), alrOnChannel.c_str(), alrOnChannel.size(), 0);
         return false;
@@ -322,6 +320,74 @@ void Server::PRIVMSG(int senderFd, const std::string &target, const std::string 
     }
 }
 
+  // -------------------> Modes <------------------- //
+
+void    Channel::setModes(bool activate, const std::string &mode, Client *user, Server *server)
+{
+    std::stringstream   ss(mode);
+    std::string         password, modes, nickname;
+    int                 limit;
+
+    ss >> modes;
+    std::cout << "in condition\r\n";
+    for (unsigned i = 0; modes[i]; i++)
+    {
+        if (modes[i] == 'i') {
+            handleModeI(activate);
+            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " i : turn invite mode " + (activate ? "on\r\n" : "off\r\n");
+            send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+        }
+        else if (modes[i] == 't') {
+            handleModeT(activate);
+            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " t : " + (activate ? "remove" : "add") + " topic restriction\r\n";
+            send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+        }
+        else if (modes[i] == 'k') {
+            ss >> password;
+            handleModeK(activate, password);
+            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " k : " + (activate ? "change" : "remove") + " channel key\r\n";
+            send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+        }
+        else if (modes[i] == 'o') {
+            ss >> nickname;
+            handleModeO(activate, nickname, user, server);
+            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " o : " + nickname + (activate ? " is now channel operator\r\n" : " is no more channel operator\r\n");
+            send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+        }
+        else if (modes[i] == 'l') {
+            ss >> limit;
+            std::ostringstream  limitStr;
+            limitStr << limit;
+            handleModeL(activate, limit);
+            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " l : " + (activate ? ("channel user limit is now " + limitStr.str() + "\r\n") : "remove user limit\r\n");
+            send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+        }
+    }
+}
+
+void    Server::MODE(bool activate, const std::string &chanName, const std::string &mode, Client *user)
+{
+    if (_chanMap.find(chanName) != _chanMap.end())
+    {
+        if (_chanMap[chanName]->isUserInChannel(user->get_nickname()))
+        {
+            if (activate)
+                _chanMap[chanName]->setModes(activate, mode, user, this);
+            else
+                _chanMap[chanName]->setModes(activate, mode, user, this);
+        }
+        else
+        {
+            std::string error_message = ":" + _ServerName + " 442 " + user->get_nickname() + " " + chanName + " :You're not on that channel\r\n";
+            send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
+        }
+    }
+    else
+    {
+        std::string noSuchNick = ":" + _ServerName + " 401 " + user->get_nickname() + " " + chanName + " :No such nick/channel\r\n"; // RPL 401 No such nick
+        send(user->get_fd(), noSuchNick.c_str(), noSuchNick.size(), 0);
+    }
+}
 
   // -------------------> Others <------------------- //
 
