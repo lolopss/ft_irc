@@ -285,10 +285,6 @@ void Server::receiveNewData(int fd) {
                         send(fd, error_message.c_str(), error_message.size(), 0);
                     }
                 }
-                // else {
-                //     std::string error_message = ":server 404 " + client.get_nickname() + " :You are not in a channel\r\nReal message = " + command + "\r\n";
-                //     send(fd, error_message.c_str(), error_message.size(), 0);
-                // }
             }
         }
     }

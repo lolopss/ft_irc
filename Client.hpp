@@ -63,5 +63,6 @@ class Client {
         bool        is_registered() const { return _registered; }
         void        set_registered(bool registered) { _registered = registered; }
         void        set_IPADD(const std::string& ip);
+        std::string get_IPADD() const { return _IPadd; }
         void        handlePartCommand(const std::string &channelName);
 };

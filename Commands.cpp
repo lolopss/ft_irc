@@ -11,18 +11,23 @@ void Server::USER(Client *client, const std::string &username, const std::string
     client->set_hostname(hostname);
     client->set_servername(servername);
     client->set_realname(realname);
-
     client->set_registered(true);
+
+    //get ip_ADD
+    struct sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
+    getpeername(client->get_fd(), (struct sockaddr *)&client_addr, &addr_len);
+    char client_ip[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
+    client->set_IPADD(client_ip);
 }
 
 void Server::NICK(Client *client, const std::string &new_nick) {
-    // Vérification si le surnom est fourni
     if (new_nick.empty()) {
         std::string response = ":server 431 * :No nickname given\r\n";
         send(client->get_fd(), response.c_str(), response.size(), 0);
         return;
     }
-
     // Vérification si le surnom est déjà utilisé
     bool alr_exists = false;
     for (size_t i = 0; i < _clients.size(); i++) {
@@ -46,7 +51,7 @@ Client* Server::findClientByNickname(const std::string& nickname) {
             return &_clients[i];
         }
     }
-    return NULL; // Return nullptr if no client is found with the given nickname
+    return NULL;
 }
 
 void Server::INVITE(Client *inviter, const std::string &nickname, const std::string &channelName) {
@@ -73,11 +78,9 @@ void Server::INVITE(Client *inviter, const std::string &nickname, const std::str
         send(inviter->get_fd(), error_message.c_str(), error_message.size(), 0);
         return;
     }
-
     // Send invite message to the invited user
     std::string invite_message = ":" + inviter->get_nickname() + "!" + inviter->get_username() + "@" + inviter->get_hostname() + " INVITE " + invitedUser->get_nickname() + " :" + channelName + "\r\n";
     send(invitedUser->get_fd(), invite_message.c_str(), invite_message.size(), 0);
-
     // Notify inviter that the invite was sent
     std::string confirm_message = ":server 341 " + inviter->get_nickname() + " " + invitedUser->get_nickname() + " " + channelName + "\r\n";
     send(inviter->get_fd(), confirm_message.c_str(), confirm_message.size(), 0);
@@ -129,7 +132,6 @@ void    Server::LIST(Client *user)
 
     send(user->get_fd(), listEnd.c_str(), listEnd.size(), 0);
 }
-
 
 
 /* ------------------------- Channel ------------------------- */
@@ -296,10 +298,10 @@ Client* Server::getClientByFd(int fd) {
 void Server::PRIVMSG(int senderFd, const std::string &target, const std::string &message) {
     Client *sender = getClientByFd(senderFd);
     if (!sender) {
-        std::cerr << "Sender not found for FD: " << senderFd << std::endl;
+        std::cerr << RED << "Sender not found for FD: " << senderFd << WHI << std::endl;
         return;
     }
-    std::string fullMessage = sender->getID() + " PRIVMSG " + target + " :" + message + "\r\n";
+    std::string fullMessage = sender->getID() + " PRIVMSG " + target + ":" + message + "\r\n";
     if (target[0] == '#') {
         Channel *channel = get_Channel(target);
         if (channel) {
@@ -312,6 +314,7 @@ void Server::PRIVMSG(int senderFd, const std::string &target, const std::string 
         // Send message to a specific user
         Client *receiver = findClientByNickname(target);
         if (receiver) {
+            std::cout  << "FULL MESSAGE = " << fullMessage << "END OF THE FULL MESSAGE.\r\n";
             send(receiver->get_fd(), fullMessage.c_str(), fullMessage.size(), 0);
         } else {
             std::string errorMessage = ":server 401 " + sender->get_nickname() + " " + target + " :No such nick/channel\r\n";
