@@ -175,9 +175,10 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         iss >> target;
         WHOIS(&client, target);
     }*/ else if (command == "JOIN") {
-        std::string channel_name;
+        std::string channel_name, password;
         iss >> channel_name;
-        JOIN(channel_name, client.get_nickname(), &client);
+        iss >> password;
+        JOIN(channel_name, client.get_nickname(), &client, password);
     }
     else if (command == "PART") {
         std::string channel_name;

@@ -57,6 +57,7 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
     std::string old_nick = client->get_nickname();
     client->set_nickname(new_nick);
     // function change nickname in channel
+    std::cout << "channellist size = " << client->get_channelList().size() << "\r\n";
     for (unsigned i = 0; i < client->get_channelList().size(); i++)
     {
         _chanMap[client->get_channelList()[i]]->changeNicknameInChannel(client, old_nick);
@@ -99,6 +100,7 @@ void Server::INVITE(Client *inviter, const std::string &nickname, const std::str
         send(inviter->get_fd(), error_message.c_str(), error_message.size(), 0);
         return;
     }
+    _chanMap[channelName]->addInviteUser(invitedUser);
     // Send invite message to the invited user
     std::string invite_message = ":" + inviter->get_nickname() + "!" + inviter->get_username() + "@" + inviter->get_hostname() + " INVITE " + invitedUser->get_nickname() + " :" + channelName + "\r\n";
     send(invitedUser->get_fd(), invite_message.c_str(), invite_message.size(), 0);
@@ -123,22 +125,56 @@ void Channel::broadcastMessageToChan(const std::string &message, int sender_fd) 
     }
 }
 
-void Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user) {
-    std::map<std::string, Channel*>::iterator   it = _chanMap.find(chanName);
-    bool                                        newChan = false;
-    if (it == _chanMap.end()) {
+bool    Channel::checkAllModes(Client *user, const std::string &nickname, const std::string &password)
+{
+    if (_modeI)
+    {
+        if (_inviteList.find(nickname) != _inviteList.end())
+        {
+            _inviteList.erase(nickname);
+        }
+        else
+        {
+            std::string inviteOnly = _chanName + " :Invite only, can't join channel without an invitation\r\n";
+            send(user->get_fd(), inviteOnly.c_str(), inviteOnly.size(), 0);
+            return false;
+        }
+    }
+    if (_modeK)
+    {
+        if (password != _channelPassword)
+        {
+            std::string badKey = _chanName + " :Bad key input, can't join channel\r\n";
+            send(user->get_fd(), badKey.c_str(), badKey.size(), 0);
+            return false;
+        }
+    }
+    if (_modeL)
+    {
+        if (_nbUsers == _userLimit)
+        {
+            std::string userLimit = _chanName + " :User limit reach, can't join channel\r\n";
+            send(user->get_fd(), userLimit.c_str(), userLimit.size(), 0);
+            return false;
+        }
+    }
+    return true;
+}
+
+void    Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user, const std::string &password) {
+    //bool                                        newChan = false;
+
+    if (_chanMap.find(chanName) == _chanMap.end()) {
         Channel *newChannel = new Channel(chanName);
         _chanMap[chanName] = newChannel;
         _chanMap[chanName]->addUser(user);
         _chanMap[chanName]->grantOperator(user, nickname, this, true);
-        newChan = true;
+        //newChan = true;
     }
     else
     {
-        /*if (_modeI)
-        {
-
-        }*/
+        if (!_chanMap[chanName]->checkAllModes(user, nickname, password))
+            return ;
         _chanMap[chanName]->addUser(user);
     }
     std::string joinMsg = ":" + user->get_nickname() + " JOIN :" + chanName + "\r\n";
@@ -472,7 +508,6 @@ void    Server::MODE(bool activate, const std::string &chanName, const std::stri
     }
     else
     {
-        std::cout << "in no such nick condition\r\n";
         std::string noSuchNick = ":" + _ServerName + " 401 " + user->get_nickname() + " " + chanName + " :No such nick/channel\r\n"; // RPL 401 No such nick
         send(user->get_fd(), noSuchNick.c_str(), noSuchNick.size(), 0);
     }
@@ -493,26 +528,36 @@ bool    Channel::isUserInChannel(const std::string &nickname) const {
 
 void    Channel::changeNicknameInChannel(Client *user, const std::string &nickname)
 {
+
     if (_userMap.find(nickname) != _userMap.end())
     {
         _userMap.erase(nickname);
-        _userMap.insert(std::make_pair(nickname, user));
+        _userMap.insert(std::make_pair(user->get_nickname(), user));
         if (_userOps.find(nickname) != _userOps.end())
         {
             _userOps.erase(nickname);
-            _userOps.insert(std::make_pair(nickname, user));
+            _userOps.insert(std::make_pair(user->get_nickname(), user));
         }
     }
     else
     {
         std::cout << "user is not in Channel : " << _chanName << "\r\n";
     }
+
 }
 
 void Channel::addUser(Client *user) {
     _userMap[user->get_nickname()] = user;
     _nbUsers++;
     std::cout << "User " << user->get_nickname() << " added to channel " << _chanName << ". Current users: " << _nbUsers << std::endl;
+}
+
+void    Channel::addInviteUser(Client *user)
+{
+    if (_inviteList.find(user->get_nickname()) == _inviteList.end())
+    {
+        _inviteList.insert(std::make_pair(user->get_nickname(), user));
+    }
 }
 
 void    Channel::eraseUser(const std::string &nickname)

@@ -61,7 +61,7 @@ public:
     void        USER(Client *client, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname);
     void        NICK(Client *client, const std::string &new_name);
     void        WHOIS(Client *client, const std::string &target);
-    void        JOIN(const std::string &chanName, const std::string &nickname, Client *user);
+    void        JOIN(const std::string &chanName, const std::string &nickname, Client *user, const std::string &password);
     void        LIST(Client *user);
     void        PART(Client *user, const std::string &chanName, const std::string &reason);
     void        TOPIC(Client *client, const std::string &chanName, const std::string &topicName);
