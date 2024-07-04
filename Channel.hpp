@@ -7,7 +7,7 @@ class Server;
 class Channel {
     private:
         int                 _nbUsers;
-        int           _userLimit;
+        int                 _userLimit;
         bool                _topicRestriction;
         bool                _isTopic;
         std::string         _topicName;
@@ -43,6 +43,7 @@ class Channel {
         void        addUser(Client *user);
         bool        isUserInChannel(const std::string &nickname) const;
         bool        isEmpty();
+        void        changeNicknameInChannel(Client *user, const std::string &nickname);
 
         void        handleModeI(bool activate);
         void        handleModeT(bool activate);

@@ -14,6 +14,7 @@
 #include <cerrno>
 #include <cstring>
 #include <stdexcept>
+#include <algorithm>
 
 
 #define BUFFER_SIZE 1024
@@ -24,17 +25,19 @@
 
 class Client {
     private:
-        int         _fd;
-        std::string _nickname;
-        std::string _username;
-        std::string _hostname;
-        std::string _servername;
-        std::string _realname;
-        std::string _current_channel;
-        bool        _registered;
-        std::string _IPadd; // IP address of the Client 
+        int                         _fd;
+        std::string                 _nickname;
+        std::string                 _username;
+        std::string                 _hostname;
+        std::string                 _servername;
+        std::string                 _realname;
+        std::string                 _current_channel;
+        std::vector<std::string>    _channelList;
+        bool                        _registered;
+        std::string                 _IPadd; // IP address of the Client 
+        bool                        _invisible;
     public:
-        Client() : _fd(-1), _nickname(""), _username(""), _hostname(""), _servername(""), _realname(""), _registered(false){} 
+        Client() : _fd(-1), _nickname(""), _username(""), _hostname(""), _servername(""), _realname(""), _registered(false), _invisible(false) {} 
         ~Client() {}
 
         int         get_fd() const;
@@ -60,9 +63,14 @@ class Client {
         std::string get_realname() const { return _realname; }
         void        set_realname(const std::string &realname) { _realname = realname; }
 
+        std::vector<std::string>    get_channelList();
+
         bool        is_registered() const { return _registered; }
         void        set_registered(bool registered) { _registered = registered; }
         void        set_IPADD(const std::string& ip);
         std::string get_IPADD() const { return _IPadd; }
         void        handlePartCommand(const std::string &channelName);
+
+        void            insertChannel(const std::string &chanName);
+        void            removeChannel(const std::string &chanName);
 };

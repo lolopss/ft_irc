@@ -170,7 +170,11 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         iss >> username >> hostname >> servername;
         std::getline(iss, realname);
         USER(&client, username, hostname, servername, realname);
-    } else if (command == "JOIN") {
+    } /*else if (command == "WHOIS") {
+        std::string target;
+        iss >> target;
+        WHOIS(&client, target);
+    }*/ else if (command == "JOIN") {
         std::string channel_name;
         iss >> channel_name;
         JOIN(channel_name, client.get_nickname(), &client);

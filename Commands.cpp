@@ -1,6 +1,6 @@
 #include "Channel.hpp"
 
-void Server::USER(Client *client, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname) {
+void    Server::USER(Client *client, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname) {
     if (client->is_registered()) {
         std::string response = ":server 462 * :You may not reregister\r\n";
         send(client->get_fd(), response.c_str(), response.size(), 0);
@@ -22,7 +22,23 @@ void Server::USER(Client *client, const std::string &username, const std::string
     client->set_IPADD(client_ip);
 }
 
-void Server::NICK(Client *client, const std::string &new_nick) {
+void    Server::WHOIS(Client *client, const std::string &target) // to test WHOIS command
+{
+    Client  *user = NULL;
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        if (_clients[i].get_nickname() == target) {
+            user = &_clients[i];
+            break;
+        }
+    }
+    if (user == NULL)
+        return ;
+    std::string whois = user->get_nickname() + "\r\n" + user->get_username() + "\r\n" + user->get_IPADD() + "\r\n" + (user->get_fd() != -1 ? "connected\r\n" : "not connected\r\n");
+    std::cout << "whois size = " << whois.size() << " || " << "WHOIS var is equal to : " << whois.c_str();
+    send(client->get_fd(), whois.c_str(), whois.size(), 0);
+}
+
+void    Server::NICK(Client *client, const std::string &new_nick) {
     if (new_nick.empty()) {
         std::string response = ":server 431 * :No nickname given\r\n";
         send(client->get_fd(), response.c_str(), response.size(), 0);
@@ -40,6 +56,11 @@ void Server::NICK(Client *client, const std::string &new_nick) {
     }
     std::string old_nick = client->get_nickname();
     client->set_nickname(new_nick);
+    // function change nickname in channel
+    for (unsigned i = 0; i < client->get_channelList().size(); i++)
+    {
+        _chanMap[client->get_channelList()[i]]->changeNicknameInChannel(client, old_nick);
+    }
     std::string confirmation = ":server 001 " + new_nick + " :Nickname changed to " + new_nick + "\r\n";
     std::cout << "Client " << client->get_fd() << " changed nickname from " << old_nick << " to " << new_nick << "\n";
     send(client->get_fd(), confirmation.c_str(), confirmation.size(), 0);
@@ -103,18 +124,30 @@ void Channel::broadcastMessageToChan(const std::string &message, int sender_fd) 
 }
 
 void Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user) {
-    std::map<std::string, Channel*>::iterator it = _chanMap.find(chanName);
+    std::map<std::string, Channel*>::iterator   it = _chanMap.find(chanName);
+    bool                                        newChan = false;
     if (it == _chanMap.end()) {
         Channel *newChannel = new Channel(chanName);
         _chanMap[chanName] = newChannel;
+        _chanMap[chanName]->addUser(user);
+        _chanMap[chanName]->grantOperator(user, nickname, this, true);
+        newChan = true;
     }
-    _chanMap[chanName]->addUser(user);
+    else
+    {
+        /*if (_modeI)
+        {
+
+        }*/
+        _chanMap[chanName]->addUser(user);
+    }
     std::string joinMsg = ":" + user->get_nickname() + " JOIN :" + chanName + "\r\n";
     send(user->get_fd(), joinMsg.c_str(), joinMsg.size(), 0);
     // Send RPL messages to the joining user
     _chanMap[chanName]->RPL(user, this, nickname);
     // Broadcast join message to other users in the channel
     _chanMap[chanName]->broadcastMessageToChan(joinMsg, user->get_fd());
+    user->insertChannel(chanName);
     user->set_current_channel(chanName);
 }
 
@@ -342,7 +375,7 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
         }
         else if (modes[i] == 't') {
             handleModeT(activate);
-            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " t : " + (activate ? "remove" : "add") + " topic restriction\r\n";
+            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " t : " + (activate ? "add" : "remove") + " topic restriction\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
         }
         else if (modes[i] == 'k') {
@@ -370,14 +403,33 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
 
 void    Server::MODE(bool activate, const std::string &chanName, const std::string &mode, Client *user)
 {
-    if (_chanMap.find(chanName) != _chanMap.end())
+    std::cout << "| in mode function |\r\n";
+    if (chanName[0] != '#')
+    {
+        for (size_t i = 0; i < _clients.size(); ++i) {
+            if (_clients[i].get_nickname() == chanName) {
+                if (mode == "+i")
+                    std::cout << "client is invisible\r\n";
+                break;
+            }
+        }
+    }
+    else if (_chanMap.find(chanName) != _chanMap.end())
     {
         if (_chanMap[chanName]->isUserInChannel(user->get_nickname()))
         {
-            if (activate)
-                _chanMap[chanName]->setModes(activate, mode, user, this);
+            if (_chanMap[chanName]->isOps(user->get_nickname()))
+            {
+                if (activate)
+                    _chanMap[chanName]->setModes(activate, mode, user, this);
+                else
+                    _chanMap[chanName]->setModes(activate, mode, user, this);
+            }
             else
-                _chanMap[chanName]->setModes(activate, mode, user, this);
+            {
+                std::string notOps = chanName + " :" + user->get_nickname() + " is not operator of that channel\r\n";
+                send(user->get_fd(), notOps.c_str(), notOps.size(), 0);
+            }
         }
         else
         {
@@ -387,6 +439,7 @@ void    Server::MODE(bool activate, const std::string &chanName, const std::stri
     }
     else
     {
+        std::cout << "in no such nick condition\r\n";
         std::string noSuchNick = ":" + _ServerName + " 401 " + user->get_nickname() + " " + chanName + " :No such nick/channel\r\n"; // RPL 401 No such nick
         send(user->get_fd(), noSuchNick.c_str(), noSuchNick.size(), 0);
     }
@@ -401,8 +454,26 @@ bool    Channel::isOps(const std::string &nickname)
     return false;
 }
 
-bool Channel::isUserInChannel(const std::string &nickname) const {
+bool    Channel::isUserInChannel(const std::string &nickname) const {
     return _userMap.find(nickname) != _userMap.end();
+}
+
+void    Channel::changeNicknameInChannel(Client *user, const std::string &nickname)
+{
+    if (_userMap.find(nickname) != _userMap.end())
+    {
+        _userMap.erase(nickname);
+        _userMap.insert(std::make_pair(nickname, user));
+        if (_userOps.find(nickname) != _userOps.end())
+        {
+            _userOps.erase(nickname);
+            _userOps.insert(std::make_pair(nickname, user));
+        }
+    }
+    else
+    {
+        std::cout << "user is not in Channel : " << _chanName << "\r\n";
+    }
 }
 
 void Channel::addUser(Client *user) {
