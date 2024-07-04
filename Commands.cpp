@@ -400,6 +400,25 @@ void Server::PRIVMSG(int senderFd, const std::string &target, const std::string 
 }
 
 
+void Server::PASS(Client *client, const std::string &password) {
+    if (client->is_authenticated()) {
+        std::string error_message = ":server 462 " + client->get_nickname() + " :You may not reregister\r\n";
+        send(client->get_fd(), error_message.c_str(), error_message.size(), 0);
+        return;
+    }
+
+    if (password == _password) {
+        client->authenticate();
+        std::string success_message = ":server 001 " + client->get_nickname() + " :Password accepted\r\n";
+        send(client->get_fd(), success_message.c_str(), success_message.size(), 0);
+    } else {
+        std::string error_message = ":server 464 " + client->get_nickname() + " :Password incorrect\r\n";
+        send(client->get_fd(), error_message.c_str(), error_message.size(), 0);
+        close(client->get_fd());
+        clearClients(client->get_fd());
+    }
+}
+
 void Channel::KICK(Client *op, const std::string &channelName, const std::string &nickname, const std::string &reason) {
     if (!isOps(op->get_nickname())) {
         std::string error_message = ":server 482 " + op->get_nickname() + " " + channelName + " :You're not channel operator\r\n";
@@ -416,13 +435,11 @@ void Channel::KICK(Client *op, const std::string &channelName, const std::string
     Client *user = _userMap[nickname];
     std::string kick_message = ":" + op->get_nickname() + " KICK " + channelName + " " + nickname + " :" + reason + "\r\n";
     broadcastMessageToChan(kick_message, -1);
-
+    std::string user_message = ":server 442 " + nickname + " " + channelName + " :" + op->get_nickname() + " kicked you from the channel\r\n";
+    send(user->get_fd(), user_message.c_str(), user_message.size(), 0);
     eraseUser(nickname);
     std::string confirmation_message = ":server 369 " + op->get_nickname() + " " + nickname + " :Kicked from " + channelName + "\r\n";
     send(op->get_fd(), confirmation_message.c_str(), confirmation_message.size(), 0);
-
-    std::string user_message = ":server 442 " + nickname + " " + channelName + " :You have been kicked\r\n";
-    send(user->get_fd(), user_message.c_str(), user_message.size(), 0);
 }
 
   // -------------------> Modes <------------------- //

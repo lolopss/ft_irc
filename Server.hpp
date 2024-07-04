@@ -23,6 +23,7 @@ class Channel;
 class Server {
 private:
     const std::string           _ServerName;
+    const std::string           _password;
     int                         _Port;
     int                         _ServerSocketFd;
     static bool                 _Signal;
@@ -30,10 +31,10 @@ private:
     std::vector<struct pollfd>  _fds;
     int                         _client_nb;
     std::map<std::string, Channel*> _chanMap;
-    std::map<int, std::string> _partial_messages; // for \D handling
+    std::map<int, std::string>  _partial_messages; // for \D handling
 
 public:
-    Server(char *port) : _ServerName("PEERC"), _Port(atoi(port)), _ServerSocketFd(-1) {}
+    Server(char *port, char *password) : _ServerName("PEERC"), _password(password), _Port(atoi(port)), _ServerSocketFd(-1)  {}
     ~Server() {}
 
     std::string getClientNickname(int client_fd);
@@ -69,5 +70,7 @@ public:
     void        PING(int fd, const std::string &message);
     void        INVITE(Client *inviter, const std::string &nickname, const std::string &channelName);
     void        MODE(bool activate, const std::string &chanName, const std::string &mode, Client *client);
+    void        PASS(Client *client, const std::string &password);
+
 };
 

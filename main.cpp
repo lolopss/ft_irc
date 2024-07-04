@@ -15,7 +15,7 @@ int main(int ac, char **av) {
     
     if (check_args(ac, av))
         return 1;
-    Server serv(av[1]);
+    Server serv(av[1], av[2]);
     std::cout << "-----Server-----\n";
     try {
         signal(SIGINT, Server::SignalHandler);

@@ -60,6 +60,8 @@
         "thread": "cpp",
         "typeinfo": "cpp",
         "semaphore": "cpp",
-        "__nullptr": "cpp"
-    }
+        "__nullptr": "cpp",
+        "__tree": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }
