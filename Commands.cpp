@@ -331,11 +331,18 @@ Client* Server::getClientByFd(int fd) {
 void Server::PRIVMSG(int senderFd, const std::string &target, const std::string &message) {
     Client *sender = getClientByFd(senderFd);
     if (!sender) {
-        std::cerr << RED << "Sender not found for FD: " << senderFd << WHI << std::endl;
+        std::cerr << "Sender not found for FD: " << senderFd << std::endl;
         return;
     }
-    std::string fullMessage = sender->getID() + " PRIVMSG " + target + ":" + message + "\r\n";
+
+    std::string fullMessage;
+    size_t pos = message.find(':');
+    if (pos != std::string::npos && message.substr(pos + 2, 8) == "DCC SEND") {
+        fullMessage = sender->getID() + " PRIVMSG " + target + ":" + message + "\r\n";
+    } else
+        fullMessage = sender->getID() + " PRIVMSG " + target + " :" + message + "\r\n";
     if (target[0] == '#') {
+        // Target is a channel
         Channel *channel = get_Channel(target);
         if (channel) {
             channel->broadcastMessageToChan(fullMessage, senderFd);
@@ -344,16 +351,42 @@ void Server::PRIVMSG(int senderFd, const std::string &target, const std::string 
             send(senderFd, errorMessage.c_str(), errorMessage.size(), 0);
         }
     } else {
-        // Send message to a specific user
+        // Target is a specific user
         Client *receiver = findClientByNickname(target);
         if (receiver) {
-            std::cout  << "FULL MESSAGE = " << fullMessage << "END OF THE FULL MESSAGE.\r\n";
+            std::cout << "FULL MESSAGE = " << fullMessage << "END OF THE FULL MESSAGE.\r\n";
             send(receiver->get_fd(), fullMessage.c_str(), fullMessage.size(), 0);
         } else {
             std::string errorMessage = ":server 401 " + sender->get_nickname() + " " + target + " :No such nick/channel\r\n";
             send(senderFd, errorMessage.c_str(), errorMessage.size(), 0);
         }
     }
+}
+
+
+void Channel::KICK(Client *op, const std::string &channelName, const std::string &nickname, const std::string &reason) {
+    if (!isOps(op->get_nickname())) {
+        std::string error_message = ":server 482 " + op->get_nickname() + " " + channelName + " :You're not channel operator\r\n";
+        send(op->get_fd(), error_message.c_str(), error_message.size(), 0);
+        return;
+    }
+
+    if (_userMap.find(nickname) == _userMap.end()) {
+        std::string error_message = ":server 441 " + nickname + " " + channelName + " :They aren't on that channel\r\n";
+        send(op->get_fd(), error_message.c_str(), error_message.size(), 0);
+        return;
+    }
+
+    Client *user = _userMap[nickname];
+    std::string kick_message = ":" + op->get_nickname() + " KICK " + channelName + " " + nickname + " :" + reason + "\r\n";
+    broadcastMessageToChan(kick_message, -1);
+
+    eraseUser(nickname);
+    std::string confirmation_message = ":server 369 " + op->get_nickname() + " " + nickname + " :Kicked from " + channelName + "\r\n";
+    send(op->get_fd(), confirmation_message.c_str(), confirmation_message.size(), 0);
+
+    std::string user_message = ":server 442 " + nickname + " " + channelName + " :You have been kicked\r\n";
+    send(user->get_fd(), user_message.c_str(), user_message.size(), 0);
 }
 
   // -------------------> Modes <------------------- //
@@ -525,5 +558,5 @@ int         Channel::getNbUser() const { return _nbUsers; }
 void Server::PING(int fd, const std::string &msg) {
     std::string pong_response = "PONG " + msg + "\r\n";
     send(fd, pong_response.c_str(), pong_response.size(), 0);
-    std::cout << "Sent to " << fd << ": " << pong_response << std::endl;
+    std::cout << "Sent to " << fd << ": " << pong_response;
 }

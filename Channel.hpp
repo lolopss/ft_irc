@@ -27,7 +27,8 @@ class Channel {
         Channel();
         Channel(const std::string &name);
         ~Channel();
-
+        
+        void        KICK(Client *operatorClient, const std::string &channelName, const std::string &nickname, const std::string &message);
         std::string getChanName() const;
         int         getNbUser() const;
         bool        alreadyJoin(Server *server, Client *user, const std::string &nickname);
