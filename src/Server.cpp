@@ -1,4 +1,4 @@
-#include "Server.hpp"
+#include "../headers/Server.hpp"
 
 bool Server::_Signal = false;
 

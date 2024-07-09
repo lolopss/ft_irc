@@ -1,4 +1,4 @@
-#include "Server.hpp"
+#include "../headers/Server.hpp"
 int check_args(int ac, char **av){
  if (ac != 3){
         std::cout << RED << "./ft_irc \"port\"(6690 ~ 6699) \"password\"\n" << WHI;

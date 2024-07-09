@@ -1,4 +1,4 @@
-#include "Channel.hpp"
+#include "../headers/Channel.hpp"
 
 void    Server::USER(Client *client, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname) {
     if (client->is_registered()) {
