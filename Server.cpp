@@ -174,6 +174,9 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         } else {
             std::string error_message = ":server 464 " + client.get_nickname() + " :Password required\r\n";
             send(client.get_fd(), error_message.c_str(), error_message.size(), 0);
+            std::cout << RED << client.get_fd() << " : No password entered\r\n" << WHI;
+            close(client.get_fd());
+            clearClients(client.get_fd());
             return false;
         }
     }

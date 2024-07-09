@@ -414,6 +414,7 @@ void Server::PASS(Client *client, const std::string &password) {
     } else {
         std::string error_message = ":server 464 " + client->get_nickname() + " :Password incorrect\r\n";
         send(client->get_fd(), error_message.c_str(), error_message.size(), 0);
+        std::cout << RED << client->get_fd() << " wrong password\r\n" << WHI;
         close(client->get_fd());
         clearClients(client->get_fd());
     }
