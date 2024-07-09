@@ -164,7 +164,18 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
     
     std::cout << "Received command: " << command << " from client: " << client.get_fd() << std::endl;
 
-
+    if (command == "CAP") {
+        std::string subcommand;
+        iss >> subcommand;
+        if (subcommand == "LS" || subcommand == "LIST") {
+            std::string cap_response = ":server CAP * LS :\r\n"; // Respond with supported capabilities
+            send(client.get_fd(), cap_response.c_str(), cap_response.size(), 0);
+            return true;
+        } else if (subcommand == "END") {
+            return true; // CAP negotiation ends
+        }
+    }
+    
     if (!client.is_authenticated()) {
         if (command == "PASS") {
             std::string password;
