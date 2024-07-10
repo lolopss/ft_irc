@@ -240,15 +240,11 @@ void    Channel::chanList(Client *user)
 
 void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
 {
+    (void)nickname;
     std::map<std::string, Client*>::iterator it;
 
-    std::string noTopic = ":" + server->getServerName() + " 331 " + nickname + " " + _chanName + " :No topic is set\r\n"; // RPL 331 without topic
-    std::string topic = ":" + server->getServerName() + " 332 " + nickname + " " + _chanName + " :" + _topicName + "\r\n"; // RPL 332 with topic
-
-    for (it = _userMap.begin(); it != _userMap.end(); it++)
-    {
-        std::cout << "user are : " << it->first << "\n";
-    } // print server side to get every users on a channel
+    std::string noTopic = _chanName + " :No topic is set\r\n"; // RPL 331 without topic
+    std::string topic = _chanName + " :" + _topicName + "\r\n"; // RPL 332 with topic
 
     std::string namReply = ":" + server->getServerName() + " 353 " + user->get_nickname() + " = " + _chanName + " :"; // RPL 353 list users
     for (it = _userMap.begin(); it != _userMap.end();)
@@ -285,6 +281,7 @@ void    Server::TOPIC(Client *user, const std::string &chanName, const std::stri
 
 void    Channel::addTopic(Client *user, Server *server, const std::string &topicName)
 {
+    (void)server;
     if (!topicName.empty())
     {
         std::cout << "In condition topic is empty\r\n";
@@ -304,7 +301,7 @@ void    Channel::addTopic(Client *user, Server *server, const std::string &topic
     else
     {
         std::cout << "In condition topic is NOT empty\r\n";
-        std::string topic = ":" + server->getServerName() + " 332 " + user->get_nickname() + " " + _chanName + (_topicName.empty() ? " :No topic is set" : _topicName) + "\r\n";
+        std::string topic = _chanName + (_topicName.empty() ? " :No topic is set" : _topicName) + "\r\n";
         send(user->get_fd(), topic.c_str(), topic.size(), 0);
     }
 }
