@@ -54,5 +54,5 @@ class Channel {
         void        handleModeO(bool activate, const std::string &nickname, Client *user, Server *server);
         void        handleModeL(bool activate, const int &userLimit);
         void        setModes(bool activate, const std::string &mode, Client *user, Server *server);
-        bool        checkAllModes(Client *user, const std::string &nickname, const std::string &password);
+        bool        checkAllModes(Client *user, const std::string &nickname, const std::string &password, Server *server);
 };

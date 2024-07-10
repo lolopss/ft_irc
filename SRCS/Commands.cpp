@@ -125,7 +125,7 @@ void Channel::broadcastMessageToChan(const std::string &message, int sender_fd) 
     }
 }
 
-bool    Channel::checkAllModes(Client *user, const std::string &nickname, const std::string &password)
+bool    Channel::checkAllModes(Client *user, const std::string &nickname, const std::string &password, Server *server)
 {
     if (_modeI)
     {
@@ -135,7 +135,7 @@ bool    Channel::checkAllModes(Client *user, const std::string &nickname, const 
         }
         else
         {
-            std::string inviteOnly = _chanName + " :Invite only, can't join channel without an invitation\r\n"; // 473 ERR_INVITEONLYCHAN
+            std::string inviteOnly = ":" + server->getServerName() + " 473 " + user->get_username() + " " + _chanName + " :Cannot join channel (+i)\r\n"; // 473 ERR_INVITEONLYCHAN
             send(user->get_fd(), inviteOnly.c_str(), inviteOnly.size(), 0);
             return false;
         }
@@ -144,7 +144,7 @@ bool    Channel::checkAllModes(Client *user, const std::string &nickname, const 
     {
         if (password != _channelPassword)
         {
-            std::string badKey = _chanName + " :Bad key input, can't join channel\r\n"; // 475 ERR_BADCHANNELKEY
+            std::string badKey = ":" + server->getServerName() + " 475 " + user->get_username() + " " + _chanName + " :Cannot join channel (+k)\r\n"; // 475 ERR_BADCHANNELKEY
             send(user->get_fd(), badKey.c_str(), badKey.size(), 0);
             return false;
         }
@@ -153,7 +153,7 @@ bool    Channel::checkAllModes(Client *user, const std::string &nickname, const 
     {
         if (_nbUsers == _userLimit)
         {
-            std::string userLimit = _chanName + " :User limit reach, can't join channel\r\n"; // 471 ERR_CHANNELISFULL
+            std::string userLimit = ":" + server->getServerName() + " 471 " + user->get_username() + " " + _chanName + " :Cannot join channel (+l)\r\n"; // 471 ERR_CHANNELISFULL
             send(user->get_fd(), userLimit.c_str(), userLimit.size(), 0);
             return false;
         }
@@ -171,7 +171,7 @@ void    Server::JOIN(const std::string &chanName, const std::string &nickname, C
     }
     else
     {
-        if (!_chanMap[chanName]->checkAllModes(user, nickname, password))
+        if (!_chanMap[chanName]->checkAllModes(user, nickname, password, this))
             return ;
         _chanMap[chanName]->addUser(user);
     }
@@ -288,7 +288,7 @@ void    Channel::addTopic(Client *user, Server *server, const std::string &topic
         if ((_modeT && isOps(user->get_nickname())) || !_modeT)
         {
             _topicName = topicName.substr(1);
-            std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@localhost TOPIC " + _chanName + " :" + _topicName + "\r\n";
+            std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@" + user->get_hostname() + " TOPIC " + _chanName + " :" + _topicName + "\r\n";
             std::cout << "Topic is : " << setTopic << "\r\n";
             send(user->get_fd(), setTopic.c_str(), setTopic.size(), 0);
         }
@@ -449,29 +449,28 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
     int                 limit;
 
     ss >> modes;
-    std::cout << "in condition\r\n";
     for (unsigned i = 0; modes[i]; i++)
     {
         if (modes[i] == 'i') {
             handleModeI(activate);
-            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " i : turn invite mode " + (activate ? "on\r\n" : "off\r\n");
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "i\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
         }
         else if (modes[i] == 't') {
             handleModeT(activate);
-            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " t : " + (activate ? "add" : "remove") + " topic restriction\r\n";
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "t\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
         }
         else if (modes[i] == 'k') {
             ss >> password;
             handleModeK(activate, password);
-            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " k : " + (activate ? "change" : "remove") + " channel key\r\n";
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "k\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
         }
         else if (modes[i] == 'o') {
             ss >> nickname;
             handleModeO(activate, nickname, user, server);
-            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " o : " + nickname + (activate ? " is now channel operator\r\n" : " is no more channel operator\r\n");
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "o\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
         }
         else if (modes[i] == 'l') {
@@ -479,7 +478,7 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
             std::ostringstream  limitStr;
             limitStr << limit;
             handleModeL(activate, limit);
-            std::string changeMode = std::string(activate ? "\'+\'" : "\'-\'") + " l : " + (activate ? ("channel user limit is now " + limitStr.str() + "\r\n") : "remove user limit\r\n");
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "l\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
         }
     }
