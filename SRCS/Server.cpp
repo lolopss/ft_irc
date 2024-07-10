@@ -162,7 +162,7 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
 
 bool Server::exec_command(std::istringstream &iss, const std::string &command, Client &client, const std::string &msg) {
     
-    std::cout << "Received command: " << command << " from client: " << client.get_fd() << std::endl;
+    //std::cout << GRE << "Received command: " << WHI << command << YEL << " from client: " << client.get_fd() << WHI << "\n\n";
 
     if (command == "CAP") {
         std::string subcommand;
@@ -309,7 +309,7 @@ void Server::receiveNewData(int fd) {
         _partial_messages[fd].erase(0, pos + 2);
 
         if (!complete_command.empty()) {
-            std::cout << "Received from " << fd << ": " << complete_command << std::endl;
+            std::cout << GRE << "Received from " << fd << ": " << WHI << complete_command << "\n\n";
 
             std::istringstream iss(complete_command);
             std::string command;
