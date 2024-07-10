@@ -57,13 +57,12 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
     std::string old_nick = client->get_nickname();
     client->set_nickname(new_nick);
     // function change nickname in channel
-    std::cout << "channellist size = " << client->get_channelList().size() << "\r\n";
     for (unsigned i = 0; i < client->get_channelList().size(); i++)
     {
         _chanMap[client->get_channelList()[i]]->changeNicknameInChannel(client, old_nick);
     }
     std::string confirmation = ":server 001 " + new_nick + " :Nickname changed to " + new_nick + "\r\n";
-    std::cout << "Client " << client->get_fd() << " changed nickname from " << old_nick << " to " << new_nick << "\n";
+    std::cout << GRE << "Client " << client->get_fd() << BLU << " changed nickname from " << old_nick << " to " << new_nick << WHI<< "\n";
     send(client->get_fd(), confirmation.c_str(), confirmation.size(), 0);
 }
 
@@ -505,7 +504,6 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
 
 void    Server::MODE(bool activate, const std::string &chanName, const std::string &mode, Client *user)
 {
-    std::cout << "| in mode function |\r\n";
     if (chanName[0] != '#')
     {
         for (size_t i = 0; i < _clients.size(); ++i) {
@@ -582,7 +580,7 @@ void    Channel::changeNicknameInChannel(Client *user, const std::string &nickna
 void Channel::addUser(Client *user) {
     _userMap[user->get_nickname()] = user;
     _nbUsers++;
-    std::cout << "User " << user->get_nickname() << " added to channel " << _chanName << ". Current users: " << _nbUsers << std::endl;
+    std::cout << GRE << "User " << user->get_nickname() << BLU << " added to channel " << _chanName << ". Current users: " << _nbUsers  << WHI<< std::endl;
 }
 
 void    Channel::addInviteUser(Client *user)
@@ -598,7 +596,7 @@ void    Channel::eraseUser(const std::string &nickname)
     if (_userMap.find(nickname) != _userMap.end()){
         _userMap.erase(nickname);
         _nbUsers--;
-        std::cout << "User " << nickname << " removed from channel " << _chanName << ". Current users: " << _nbUsers << std::endl;
+        std::cout  << GRE << "User " << nickname << BLU << " removed from channel " << _chanName << ". Current users: " << _nbUsers << WHI << std::endl;
     }
 }
 
@@ -636,5 +634,5 @@ int         Channel::getNbUser() const { return _nbUsers; }
 void Server::PING(int fd, const std::string &msg) {
     std::string pong_response = "PONG " + msg + "\r\n";
     send(fd, pong_response.c_str(), pong_response.size(), 0);
-    std::cout << "Sent to " << fd << ": " << pong_response;
+    std::cout  << GRE << "Sent to " << fd << ": " << WHI << pong_response << std::endl;
 }
