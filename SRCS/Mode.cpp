@@ -1,4 +1,4 @@
-#include "../headers/Channel.hpp"
+#include "Channel.hpp"
 
 // 662 ['+' | '-']<mode_char> :<warning>
 
