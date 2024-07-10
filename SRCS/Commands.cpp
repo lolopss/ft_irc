@@ -117,10 +117,12 @@ Channel *Server::get_Channel(const std::string &chanName){
     return NULL;
 }
 
-void Channel::broadcastMessageToChan(const std::string &message, int sender_fd) {
+
+void Channel::broadcastMessageToChan(const std::string &message, int sender_fd){
     for (std::map<std::string, Client*>::iterator it = _userMap.begin(); it != _userMap.end(); ++it) {
-        if (it->second->get_fd() != sender_fd) {
-            send(it->second->get_fd(), message.c_str(), message.size(), 0);
+        Client *client = it->second;
+        if (client && client->get_fd() != sender_fd) {
+            send(client->get_fd(), message.c_str(), message.size(), 0);
         }
     }
 }
@@ -160,6 +162,7 @@ bool    Channel::checkAllModes(Client *user, const std::string &nickname, const 
     }
     return true;
 }
+
 
 void    Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user, const std::string &password)
 {
@@ -247,9 +250,12 @@ void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
     std::string topic = _chanName + " :" + _topicName + "\r\n"; // RPL 332 with topic
 
     std::string namReply = ":" + server->getServerName() + " 353 " + user->get_nickname() + " = " + _chanName + " :"; // RPL 353 list users
-    for (it = _userMap.begin(); it != _userMap.end();)
-    {
-        namReply += it->first + (++it == _userMap.end() ? "" : " ");
+    for (std::map<std::string, Client*>::iterator it = _userMap.begin(); it != _userMap.end(); ++it) {
+        if (isOps(it->first)) {
+            namReply += "@" + it->first + " ";
+        } else {
+            namReply += it->first + " ";
+        }
     }
     namReply += "\r\n";
 

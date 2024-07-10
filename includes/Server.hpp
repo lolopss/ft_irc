@@ -71,6 +71,7 @@ public:
     void        INVITE(Client *inviter, const std::string &nickname, const std::string &channelName);
     void        MODE(bool activate, const std::string &chanName, const std::string &mode, Client *client);
     void        PASS(Client *client, const std::string &password);
+    void        NAMES(Client *client, const std::string &chanName);
 
 };
 

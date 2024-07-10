@@ -1,4 +1,4 @@
-NAME = ft_irc
+NAME = ircserv
 CC = c++
 FLAG = -Wall -Wextra -Werror -std=c++98 -g3
 SRCS = 	SRCS/main.cpp			\
@@ -26,7 +26,7 @@ fclean : clean
 re : fclean all
 
 test: re
-	terminator -e "./ft_irc 6690 oui" -p --title="ft_irc Server" &
+	terminator -e "valgrind ./ircserv 6690 oui" -p --title="ft_irc Server" &
 	sleep 1
 	terminator -e "irssi -c localhost -p 6690 -n user1 -w oui" -p --title="irssi Client b" &
 	sleep 1
