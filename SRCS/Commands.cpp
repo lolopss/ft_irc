@@ -245,8 +245,8 @@ void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
     (void)nickname;
     std::map<std::string, Client*>::iterator it;
 
-    std::string noTopic = ":" + server->getServerName() + " 331 " + _chanName + " No topic is set\r\n"; // RPL 331 without topic
-    std::string topic = ":" + server->getServerName() + " 332 " + _chanName + _topicName + "\r\n"; // RPL 332 with topic
+    std::string noTopic = ":" + server->getServerName() + " 331 " + _chanName + " :No topic is set\r\n"; // RPL 331 without topic
+    std::string topic = ":" + server->getServerName() + " 332 " + user->get_nickname() + " " + _chanName + " :" + _topicName + "\r\n"; // RPL 332 with topic
 
     std::string namReply = ":" + server->getServerName() + " 353 " + user->get_nickname() + " = " + _chanName + " :"; // RPL 353 list users
     for (std::map<std::string, Client*>::iterator it = _userMap.begin(); it != _userMap.end(); ++it) {
@@ -310,8 +310,8 @@ void    Channel::addTopic(Client *user, Server *server, const std::string &topic
     }
     else
     {
-        std::string noTopic = ":" + server->getServerName() + " 331 " + _chanName + " No topic is set\r\n"; // RPL 331 without topic
-        std::string topic = ":" + server->getServerName() + " 332 " + _chanName + _topicName + "\r\n"; // RPL 332 with topic
+        std::string noTopic = ":" + server->getServerName() + " 331 " + " :No topic is set\r\n"; // RPL 331 without topic
+        std::string topic = ":" + server->getServerName() + " 332 " + user->get_nickname() + " " + _chanName + " :" + _topicName + "\r\n"; // RPL 332 with topic
         if (_isTopic)
             send(user->get_fd(), topic.c_str(), topic.size(), 0);
         else
