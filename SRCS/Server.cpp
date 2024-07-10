@@ -223,22 +223,18 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         if ((int)reason.find_first_not_of(" :") != -1)
             reason = reason.substr(reason.find_first_not_of(" :"));
         PART(&client, channel_name, reason);
-    } else if (command == "LIST" || command == "list") {
+    } else if (command == "LIST") {
         LIST(&client);
-    } else if (command == "TOPIC" || command == "topic") {
-        std::cout << "In TOPIC command\r\n";
-        std::string chanName, topicName, tmp;
+    }else if (command == "TOPIC") {
+        std::string chanName, topic;
         iss >> chanName;
-        iss >> tmp;
-        if (!tmp.empty())
-        {
-            if ((int)msg.find(":") != -1)
-            {
-                topicName = msg.substr(msg.find(":"));
+        if (iss.peek() == ' ') { // Check if there's a space indicating more input
+            std::getline(iss, topic);
+            if (!topic.empty() && topic[0] == ' ') {
+                topic = topic.substr(1); // Remove leading space
             }
         }
-        //if (!chanName.empty())
-            TOPIC(&client, chanName, topicName);
+        TOPIC(&client, chanName, topic);
     } else if (command == "MODE") {
         std::string mode, chanName, tmp;
         bool        activate = false;

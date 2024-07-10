@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Server/Server.hpp"
+#include "../headers/Server.hpp"
 #include <string>
 
 class Bot {

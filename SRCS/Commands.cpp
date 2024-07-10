@@ -291,7 +291,7 @@ void    Channel::addTopic(Client *user, Server *server, const std::string &topic
         if ((_modeT && isOps(user->get_nickname())) || !_modeT)
         {
             _topicName = topicName.substr(1);
-            std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@localhost " + _chanName + " :" + _topicName + "\r\n";
+            std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@localhost TOPIC " + _chanName + " :" + _topicName + "\r\n";
             std::cout << "Topic is : " << setTopic << "\r\n";
             send(user->get_fd(), setTopic.c_str(), setTopic.size(), 0);
         }
