@@ -1,4 +1,4 @@
-#include "Server.hpp"
+#include "../headers/Server.hpp"
 int check_args(int ac, char **av){
  if (ac != 3){
         std::cout << RED << "./ft_irc \"port\"(6690 ~ 6699) \"password\"\n" << WHI;
@@ -15,7 +15,7 @@ int main(int ac, char **av) {
     
     if (check_args(ac, av))
         return 1;
-    Server serv(av[1]);
+    Server serv(av[1], av[2]);
     std::cout << "-----Server-----\n";
     try {
         signal(SIGINT, Server::SignalHandler);

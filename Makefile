@@ -1,11 +1,11 @@
 NAME = ft_irc
 CC = c++
 FLAG = -Wall -Wextra -Werror -std=c++98 -g3
-SRCS = main.cpp			\
-		Client.cpp		\
-		Server.cpp		\
-		Commands.cpp	\
-		Mode.cpp	
+SRCS = 		src/main.cpp			\
+		src/Client.cpp		\
+		src/Server.cpp		\
+		src/Commands.cpp	\
+		src/Mode.cpp	
 OBJS = $(SRCS:.cpp=.o)
 INCLUDE = -I.
 

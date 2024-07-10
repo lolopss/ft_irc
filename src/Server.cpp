@@ -1,4 +1,4 @@
-#include "Server.hpp"
+#include "../headers/Server.hpp"
 
 bool Server::_Signal = false;
 
@@ -161,6 +161,37 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
 }
 
 bool Server::exec_command(std::istringstream &iss, const std::string &command, Client &client, const std::string &msg) {
+    
+    std::cout << "Received command: " << command << " from client: " << client.get_fd() << std::endl;
+
+    if (command == "CAP") {
+        std::string subcommand;
+        iss >> subcommand;
+        if (subcommand == "LS" || subcommand == "LIST") {
+            std::string cap_response = ":server CAP * LS :\r\n"; // Respond with supported capabilities
+            send(client.get_fd(), cap_response.c_str(), cap_response.size(), 0);
+            return true;
+        } else if (subcommand == "END") {
+            return true; // CAP negotiation ends
+        }
+    }
+    
+    if (!client.is_authenticated()) {
+        if (command == "PASS") {
+            std::string password;
+            iss >> password;
+            PASS(&client, password);
+            return true;
+        } else {
+            std::string error_message = ":server 464 " + client.get_nickname() + " :Password required\r\n";
+            send(client.get_fd(), error_message.c_str(), error_message.size(), 0);
+            std::cout << RED << client.get_fd() << " : No password entered\r\n" << WHI;
+            close(client.get_fd());
+            clearClients(client.get_fd());
+            return false;
+        }
+    }
+
     if (command == "NICK") {
         std::string new_nick;
         iss >> new_nick;
@@ -170,14 +201,18 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         iss >> username >> hostname >> servername;
         std::getline(iss, realname);
         USER(&client, username, hostname, servername, realname);
-    } /*else if (command == "WHOIS") {
+    } else if (command == "PASS") {
+        std::string password;
+        iss >> password;
+        PASS(&client, password);
+    }
+     /*else if (command == "WHOIS") {
         std::string target;
         iss >> target;
         WHOIS(&client, target);
     }*/ else if (command == "JOIN") {
         std::string channel_name, password;
-        iss >> channel_name;
-        iss >> password;
+        iss >> channel_name >> password;
         JOIN(channel_name, client.get_nickname(), &client, password);
     }
     else if (command == "PART") {
@@ -235,6 +270,20 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         std::string nickname, channel_name;
         iss >> nickname >> channel_name;
         INVITE(&client, nickname, channel_name);
+    } else if (command == "KICK") {
+        std::string channel_name, nickname, reason;
+        iss >> channel_name >> nickname;
+        std::getline(iss, reason); // Read the rest as reason
+        if (!reason.empty() && reason[0] == ' ')
+            reason = reason.substr(1); // Remove leading space if present
+
+        Channel *channel = get_Channel(channel_name);
+        if (channel)
+            channel->KICK(&client, channel_name, nickname, reason);
+        else {
+            std::string error_message = ":server 403 " + client.get_nickname() + " " + channel_name + " :No such channel\r\n";
+            send(client.get_fd(), error_message.c_str(), error_message.size(), 0);
+        }
     } else {
         return false; // Not a command, handle as a regular message
     }

@@ -36,8 +36,9 @@ class Client {
         bool                        _registered;
         std::string                 _IPadd; // IP address of the Client 
         bool                        _invisible;
+        bool                        _authenticated; // Track if the client is authenticated
     public:
-        Client() : _fd(-1), _nickname(""), _username(""), _hostname(""), _servername(""), _realname(""), _registered(false), _invisible(false) {} 
+        Client() : _fd(-1), _nickname(""), _username(""), _hostname(""), _servername(""), _realname(""), _registered(false), _invisible(false), _authenticated(false){} 
         ~Client() {}
 
         int         get_fd() const;
@@ -67,10 +68,14 @@ class Client {
 
         bool        is_registered() const { return _registered; }
         void        set_registered(bool registered) { _registered = registered; }
+        
+        void        authenticate() { _authenticated = true; }
+        bool        is_authenticated() const { return _authenticated; }
+
         void        set_IPADD(const std::string& ip);
         std::string get_IPADD() const { return _IPadd; }
         void        handlePartCommand(const std::string &channelName);
 
-        void            insertChannel(const std::string &chanName);
-        void            removeChannel(const std::string &chanName);
+        void        insertChannel(const std::string &chanName);
+        void        removeChannel(const std::string &chanName);
 };
