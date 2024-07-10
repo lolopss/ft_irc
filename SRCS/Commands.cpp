@@ -80,7 +80,7 @@ void Server::INVITE(Client *inviter, const std::string &nickname, const std::str
     // Find the invited user
     Client *invitedUser = findClientByNickname(nickname);
     if (!invitedUser) {
-        std::string error_message = ":server 401 " + inviter->get_nickname() + " " + nickname + " :No such nick/channel\r\n";
+        std::string error_message = ":" + _ServerName + " 401 " + inviter->get_nickname() + " " + nickname + " :No such nick/channel\r\n";
         send(inviter->get_fd(), error_message.c_str(), error_message.size(), 0);
         return;
     }
@@ -88,7 +88,7 @@ void Server::INVITE(Client *inviter, const std::string &nickname, const std::str
     // Find the channel
     std::map<std::string, Channel*>::iterator it = _chanMap.find(channelName);
     if (it == _chanMap.end()) {
-        std::string error_message = ":server 403 " + inviter->get_nickname() + " " + channelName + " :No such channel\r\n";
+        std::string error_message = ":" + _ServerName + " 403 " + inviter->get_nickname() + " " + channelName + " :No such channel\r\n";
         send(inviter->get_fd(), error_message.c_str(), error_message.size(), 0);
         return;
     }
@@ -178,7 +178,7 @@ void    Server::JOIN(const std::string &chanName, const std::string &nickname, C
             return ;
         _chanMap[chanName]->addUser(user);
     }
-    std::string joinMsg = ":" + user->get_nickname() + " JOIN :" + chanName + "\r\n";
+    std::string joinMsg = ":" + user->get_nickname() + " JOIN " + chanName + "\r\n";
     send(user->get_fd(), joinMsg.c_str(), joinMsg.size(), 0);
     // Send RPL messages to the joining user
     _chanMap[chanName]->RPL(user, this, nickname);
@@ -246,8 +246,8 @@ void    Channel::RPL(Client *user, Server *server, const std::string &nickname)
     (void)nickname;
     std::map<std::string, Client*>::iterator it;
 
-    std::string noTopic = _chanName + " :No topic is set\r\n"; // RPL 331 without topic
-    std::string topic = _chanName + " :" + _topicName + "\r\n"; // RPL 332 with topic
+    std::string noTopic = ":" + server->getServerName() + " 331 " + _chanName + " No topic is set\r\n"; // RPL 331 without topic
+    std::string topic = ":" + server->getServerName() + " 332 " + _chanName + _topicName + "\r\n"; // RPL 332 with topic
 
     std::string namReply = ":" + server->getServerName() + " 353 " + user->get_nickname() + " = " + _chanName + " :"; // RPL 353 list users
     for (std::map<std::string, Client*>::iterator it = _userMap.begin(); it != _userMap.end(); ++it) {
@@ -276,39 +276,47 @@ void    Server::TOPIC(Client *user, const std::string &chanName, const std::stri
 {
     if (_chanMap.find(chanName) != _chanMap.end())
     {
+        if (!_chanMap[chanName]->isUserInChannel(user->get_nickname()))
+        {
+            std::string error_message = ":" + _ServerName + " 442 " + user->get_nickname() + " " + chanName + " :You're not on that channel\r\n";
+            send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
+            return ;
+        }
         _chanMap[chanName]->addTopic(user, this, topicName);
     }
     else
     {
-        std::string error_message = ":" + _ServerName + " 442 " + user->get_nickname() + " " + chanName + " :You're not on that channel\r\n";
+        std::string error_message = ":" + _ServerName + " 403 " + user->get_nickname() + " " + chanName + " :No such channel\r\n";
         send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
     }
 }
 
 void    Channel::addTopic(Client *user, Server *server, const std::string &topicName)
 {
-    (void)server;
     if (!topicName.empty())
     {
-        std::cout << "In condition topic is empty\r\n";
-        if ((_modeT && isOps(user->get_nickname())) || !_modeT)
+        if (isOps(user->get_nickname()) || _modeT)
         {
             _topicName = topicName.substr(1);
+            _isTopic = true;
             std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@" + user->get_hostname() + " TOPIC " + _chanName + " :" + _topicName + "\r\n";
-            std::cout << "Topic is : " << setTopic << "\r\n";
             send(user->get_fd(), setTopic.c_str(), setTopic.size(), 0);
+            broadcastMessageToChan(setTopic, user->get_fd());
         }
         else
         {
-            std::string notOps = _chanName + " :" + user->get_nickname() + " is not operator of that channel\r\n";
+            std::string notOps = ":" + server->getServerName() + " 482 " + user->get_username() + " " + _chanName + " You're not channel operator\r\n";
             send(user->get_fd(), notOps.c_str(), notOps.size(), 0);
         }
     }
     else
     {
-        std::cout << "In condition topic is NOT empty\r\n";
-        std::string topic = _chanName + (_topicName.empty() ? " :No topic is set" : _topicName) + "\r\n";
-        send(user->get_fd(), topic.c_str(), topic.size(), 0);
+        std::string noTopic = ":" + server->getServerName() + " 331 " + _chanName + " No topic is set\r\n"; // RPL 331 without topic
+        std::string topic = ":" + server->getServerName() + " 332 " + _chanName + _topicName + "\r\n"; // RPL 332 with topic
+        if (_isTopic)
+            send(user->get_fd(), topic.c_str(), topic.size(), 0);
+        else
+            send(user->get_fd(), noTopic.c_str(), noTopic.size(), 0);
     }
 }
 
@@ -461,23 +469,27 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
             handleModeI(activate);
             std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "i\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+            broadcastMessageToChan(changeMode, user->get_fd());
         }
         else if (modes[i] == 't') {
             handleModeT(activate);
             std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "t\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+            broadcastMessageToChan(changeMode, user->get_fd());
         }
         else if (modes[i] == 'k') {
             ss >> password;
             handleModeK(activate, password);
             std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "k\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+            broadcastMessageToChan(changeMode, user->get_fd());
         }
         else if (modes[i] == 'o') {
             ss >> nickname;
             handleModeO(activate, nickname, user, server);
             std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "o\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+            broadcastMessageToChan(changeMode, user->get_fd());
         }
         else if (modes[i] == 'l') {
             ss >> limit;
@@ -486,6 +498,7 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
             handleModeL(activate, limit);
             std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "l\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+            broadcastMessageToChan(changeMode, user->get_fd());
         }
     }
 }
