@@ -226,6 +226,7 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
     } else if (command == "LIST" || command == "list") {
         LIST(&client);
     } else if (command == "TOPIC" || command == "topic") {
+        std::cout << "In TOPIC command\r\n";
         std::string chanName, topicName, tmp;
         iss >> chanName;
         iss >> tmp;

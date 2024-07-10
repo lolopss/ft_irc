@@ -135,7 +135,7 @@ bool    Channel::checkAllModes(Client *user, const std::string &nickname, const 
         }
         else
         {
-            std::string inviteOnly = _chanName + " :Invite only, can't join channel without an invitation\r\n";
+            std::string inviteOnly = _chanName + " :Invite only, can't join channel without an invitation\r\n"; // 473 ERR_INVITEONLYCHAN
             send(user->get_fd(), inviteOnly.c_str(), inviteOnly.size(), 0);
             return false;
         }
@@ -144,7 +144,7 @@ bool    Channel::checkAllModes(Client *user, const std::string &nickname, const 
     {
         if (password != _channelPassword)
         {
-            std::string badKey = _chanName + " :Bad key input, can't join channel\r\n";
+            std::string badKey = _chanName + " :Bad key input, can't join channel\r\n"; // 475 ERR_BADCHANNELKEY
             send(user->get_fd(), badKey.c_str(), badKey.size(), 0);
             return false;
         }
@@ -153,7 +153,7 @@ bool    Channel::checkAllModes(Client *user, const std::string &nickname, const 
     {
         if (_nbUsers == _userLimit)
         {
-            std::string userLimit = _chanName + " :User limit reach, can't join channel\r\n";
+            std::string userLimit = _chanName + " :User limit reach, can't join channel\r\n"; // 471 ERR_CHANNELISFULL
             send(user->get_fd(), userLimit.c_str(), userLimit.size(), 0);
             return false;
         }
@@ -161,15 +161,13 @@ bool    Channel::checkAllModes(Client *user, const std::string &nickname, const 
     return true;
 }
 
-void    Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user, const std::string &password) {
-    //bool                                        newChan = false;
-
+void    Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user, const std::string &password)
+{
     if (_chanMap.find(chanName) == _chanMap.end()) {
         Channel *newChannel = new Channel(chanName);
         _chanMap[chanName] = newChannel;
         _chanMap[chanName]->addUser(user);
         _chanMap[chanName]->grantOperator(user, nickname, this, true);
-        //newChan = true;
     }
     else
     {

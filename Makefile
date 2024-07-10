@@ -28,6 +28,6 @@ re : fclean all
 test: re
 	terminator -e "./ft_irc 6690 oui" -p --title="ft_irc Server" &
 	sleep 1
-	terminator -e "irssi -c localhost -p 6690 -n b" -p --title="irssi Client b" &
+	terminator -e "irssi -c localhost -p 6690 -n user1 -w oui" -p --title="irssi Client b" &
 	sleep 1
-	terminator -e "irssi -c localhost -p 6690 -n a" -p --title="irssi Client a" &
+	terminator -e "irssi -c localhost -p 6690 -n user2 -w oui" -p --title="irssi Client a" &
