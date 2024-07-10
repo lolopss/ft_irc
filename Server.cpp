@@ -201,7 +201,7 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
                 topicName = msg.substr(msg.find(":"));
             }
         }
-        if (!chanName.empty())
+        //if (!chanName.empty())
             TOPIC(&client, chanName, topicName);
     } else if (command == "MODE") {
         std::string mode, chanName, tmp;

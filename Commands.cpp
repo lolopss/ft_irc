@@ -289,21 +289,23 @@ void    Channel::addTopic(Client *user, Server *server, const std::string &topic
 {
     if (!topicName.empty())
     {
-        /*if (topicName == ":")
+        std::cout << "In condition topic is empty\r\n";
+        if ((_modeT && isOps(user->get_nickname())) || !_modeT)
         {
-            _topicName = "";
+            _topicName = topicName.substr(1);
             std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@localhost " + _chanName + " :" + _topicName + "\r\n";
+            std::cout << "Topic is : " << setTopic << "\r\n";
             send(user->get_fd(), setTopic.c_str(), setTopic.size(), 0);
         }
         else
-        {*/
-            _topicName = topicName.substr(0);
-            std::string setTopic = ":" + user->get_nickname() + "!" + user->get_nickname() + "@localhost " + _chanName + " :" + _topicName + "\r\n";
-            send(user->get_fd(), setTopic.c_str(), setTopic.size(), 0);
-        //}
+        {
+            std::string notOps = _chanName + " :" + user->get_nickname() + " is not operator of that channel\r\n";
+            send(user->get_fd(), notOps.c_str(), notOps.size(), 0);
+        }
     }
     else
     {
+        std::cout << "In condition topic is NOT empty\r\n";
         std::string topic = ":" + server->getServerName() + " 332 " + user->get_nickname() + " " + _chanName + (_topicName.empty() ? " :No topic is set" : _topicName) + "\r\n";
         send(user->get_fd(), topic.c_str(), topic.size(), 0);
     }
