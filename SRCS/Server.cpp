@@ -276,7 +276,7 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
 
         Channel *channel = get_Channel(channel_name);
         if (channel)
-            channel->KICK(&client, channel_name, nickname, reason);
+            channel->KICK(&client, this, channel_name, nickname, reason);
         else {
             std::string error_message = ":server 403 " + client.get_nickname() + " " + channel_name + " :No such channel\r\n";
             send(client.get_fd(), error_message.c_str(), error_message.size(), 0);

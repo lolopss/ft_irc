@@ -344,11 +344,11 @@ void Server::PART(Client *user, const std::string &chanName, const std::string &
                 _chanMap.erase(it);
             }
         } else { // User is not in the channel, send an error message
-            std::string error_message = ":server 442 " + user->get_nickname() + " " + chanName + " :You're not on that channel\r\n";
+            std::string error_message = ":" + _ServerName + " 442 " + user->get_nickname() + " " + chanName + " :You're not on that channel\r\n";
             send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
         }
     } else { // Channel does not exist, send an error message
-        std::string error_message = ":server 403 " + user->get_nickname() + " " + chanName + " :No such channel\r\n";
+        std::string error_message = ":" + _ServerName + " 403 " + user->get_nickname() + " " + chanName + " :No such channel\r\n";
         send(user->get_fd(), error_message.c_str(), error_message.size(), 0);
     }
 }
@@ -393,7 +393,7 @@ void Server::PRIVMSG(int senderFd, const std::string &target, const std::string 
         if (channel) {
             channel->broadcastMessageToChan(fullMessage, senderFd);
         } else {
-            std::string errorMessage = ":server 403 " + sender->getID() + " " + target + " :No such channel\r\n";
+            std::string errorMessage = ":" + _ServerName + " 403 " + sender->getID() + " " + target + " :No such channel\r\n";
             send(senderFd, errorMessage.c_str(), errorMessage.size(), 0);
         }
     } else {
@@ -403,7 +403,7 @@ void Server::PRIVMSG(int senderFd, const std::string &target, const std::string 
             std::cout << "FULL MESSAGE = " << fullMessage << "END OF THE FULL MESSAGE.\r\n";
             send(receiver->get_fd(), fullMessage.c_str(), fullMessage.size(), 0);
         } else {
-            std::string errorMessage = ":server 401 " + sender->get_nickname() + " " + target + " :No such nick/channel\r\n";
+            std::string errorMessage = ":" + _ServerName + " 401 " + sender->get_nickname() + " " + target + " :No such nick/channel\r\n";
             send(senderFd, errorMessage.c_str(), errorMessage.size(), 0);
         }
     }
@@ -412,17 +412,17 @@ void Server::PRIVMSG(int senderFd, const std::string &target, const std::string 
 
 void Server::PASS(Client *client, const std::string &password) {
     if (client->is_authenticated()) {
-        std::string error_message = ":server 462 " + client->get_nickname() + " :You may not reregister\r\n";
+        std::string error_message = ":" + _ServerName + " 462 " + client->get_nickname() + " :You may not reregister\r\n";
         send(client->get_fd(), error_message.c_str(), error_message.size(), 0);
         return;
     }
 
     if (password == _password) {
         client->authenticate();
-        std::string success_message = ":server 001 " + client->get_nickname() + " :Password accepted\r\n";
+        std::string success_message = ":" + _ServerName + " 001 " + client->get_nickname() + " :Password accepted\r\n";
         send(client->get_fd(), success_message.c_str(), success_message.size(), 0);
     } else {
-        std::string error_message = ":server 464 " + client->get_nickname() + " :Password incorrect\r\n";
+        std::string error_message = ":" + _ServerName + " 464 " + client->get_nickname() + " :Password incorrect\r\n";
         send(client->get_fd(), error_message.c_str(), error_message.size(), 0);
         std::cout << RED << client->get_fd() << " wrong password\r\n" << WHI;
         close(client->get_fd());
@@ -430,15 +430,15 @@ void Server::PASS(Client *client, const std::string &password) {
     }
 }
 
-void Channel::KICK(Client *op, const std::string &channelName, const std::string &nickname, const std::string &reason) {
+void Channel::KICK(Client *op, Server *server, const std::string &channelName, const std::string &nickname, const std::string &reason) {
     if (!isOps(op->get_nickname())) {
-        std::string error_message = ":server 482 " + op->get_nickname() + " " + channelName + " :You're not channel operator\r\n";
+        std::string error_message = ":" + server->getServerName() + " 482 " + op->get_nickname() + " " + channelName + " :You're not channel operator\r\n";
         send(op->get_fd(), error_message.c_str(), error_message.size(), 0);
         return;
     }
 
     if (_userMap.find(nickname) == _userMap.end()) {
-        std::string error_message = ":server 441 " + nickname + " " + channelName + " :They aren't on that channel\r\n";
+        std::string error_message = ":" + server->getServerName() + " 441 " + nickname + " " + channelName + " :They aren't on that channel\r\n";
         send(op->get_fd(), error_message.c_str(), error_message.size(), 0);
         return;
     }
@@ -446,10 +446,10 @@ void Channel::KICK(Client *op, const std::string &channelName, const std::string
     Client *user = _userMap[nickname];
     std::string kick_message = ":" + op->get_nickname() + " KICK " + channelName + " " + nickname + " :" + reason + "\r\n";
     broadcastMessageToChan(kick_message, -1);
-    std::string user_message = ":server 442 " + nickname + " " + channelName + " :" + op->get_nickname() + " kicked you from the channel\r\n";
+    std::string user_message = ":" + server->getServerName() + " 442 " + nickname + " " + channelName + " :" + op->get_nickname() + " kicked you from the channel\r\n";
     send(user->get_fd(), user_message.c_str(), user_message.size(), 0);
     eraseUser(nickname);
-    std::string confirmation_message = ":server 369 " + op->get_nickname() + " " + nickname + " :Kicked from " + channelName + "\r\n";
+    std::string confirmation_message = ":" + server->getServerName() + " 369 " + op->get_nickname() + " " + nickname + " :Kicked from " + channelName + "\r\n";
     send(op->get_fd(), confirmation_message.c_str(), confirmation_message.size(), 0);
 }
 
@@ -508,8 +508,11 @@ void    Server::MODE(bool activate, const std::string &chanName, const std::stri
     {
         for (size_t i = 0; i < _clients.size(); ++i) {
             if (_clients[i].get_nickname() == chanName) {
-                if (mode == "+i")
-                    std::cout << "client is invisible\r\n";
+                if (mode == "i" && activate)
+                {
+                    std::string changeMode = ":" + _ServerName + " MODE " + user->get_nickname() + " :+i\r\n";
+                    send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
+                }
                 break;
             }
         }
