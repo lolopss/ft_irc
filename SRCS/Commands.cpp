@@ -33,14 +33,27 @@ void    Server::WHOIS(Client *client, const std::string &target) // to test WHOI
     }
     if (user == NULL)
         return ;
-    std::string whois = user->get_nickname() + "\r\n" + user->get_username() + "\r\n" + user->get_IPADD() + "\r\n" + (user->get_fd() != -1 ? "connected\r\n" : "not connected\r\n");
-    std::cout << "whois size = " << whois.size() << " || " << "WHOIS var is equal to : " << whois.c_str();
-    send(client->get_fd(), whois.c_str(), whois.size(), 0);
+
+    std::string targetChannelList;
+    for (unsigned i = 0; i < user->get_channelList().size(); i++)
+    {
+        targetChannelList += user->get_channelList()[i] + (i + 1 < user->get_channelList().size() ? " " : "\r\n");
+    }
+
+    std::string whoIsUser = ":" + _ServerName + " 311 " + client->get_nickname() + " " + user->get_nickname() + " " + user->get_username() + " " + user->get_hostname() + " * :" + user->get_realname() + "\r\n";
+    std::string whoIsServer = ":" + _ServerName + " 312 " + client->get_nickname() + " " + user->get_nickname() + " " + _ServerName + " :Homemade IRC serv\r\n";
+    std::string endOfWhois = ":" + _ServerName + " 318 " + client->get_nickname() + " " + user->get_nickname() + " :End of WHOIS list\r\n";
+    std::string whoIsChannels = ":" + _ServerName + " 319 " + client->get_nickname() + " " + user->get_nickname() + " :" + targetChannelList + "\r\n";
+
+    send(client->get_fd(), whoIsUser.c_str(), whoIsUser.size(), 0);
+    send(client->get_fd(), whoIsServer.c_str(), whoIsServer.size(), 0);
+    send(client->get_fd(), whoIsChannels.c_str(), whoIsChannels.size(), 0);
+    send(client->get_fd(), endOfWhois.c_str(), endOfWhois.size(), 0);
 }
 
 void    Server::NICK(Client *client, const std::string &new_nick) {
     if (new_nick.empty()) {
-        std::string response = ":server 431 * :No nickname given\r\n";
+        std::string response = ":" + _ServerName + " 431 * :No nickname given\r\n";
         send(client->get_fd(), response.c_str(), response.size(), 0);
         return;
     }
@@ -49,7 +62,7 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
     for (size_t i = 0; i < _clients.size(); i++) {
         if (new_nick == _clients[i].get_nickname()) {
             alr_exists = true;
-            std::string response = ":server 433 * " + new_nick + " :Nickname is already in use\r\n";
+            std::string response = ":" + _ServerName + " 433 * " + new_nick + " :Nickname is already in use\r\n";
             send(client->get_fd(), response.c_str(), response.size(), 0);
             return ;
         }
@@ -61,7 +74,7 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
     {
         _chanMap[client->get_channelList()[i]]->changeNicknameInChannel(client, old_nick);
     }
-    std::string confirmation = ":server 001 " + new_nick + " :Nickname changed to " + new_nick + "\r\n";
+    std::string confirmation = ":" + _ServerName + " 001 " + new_nick + " :Nickname changed to " + new_nick + "\r\n";
     std::cout << GRE << "Client " << client->get_fd() << BLU << " changed nickname from " << old_nick << " to " << new_nick << WHI<< "\n";
     send(client->get_fd(), confirmation.c_str(), confirmation.size(), 0);
 }
@@ -95,7 +108,7 @@ void Server::INVITE(Client *inviter, const std::string &nickname, const std::str
 
     // Check if inviter is in the channel
     if (!channel->isUserInChannel(inviter->get_nickname())) {
-        std::string error_message = ":server 442 " + inviter->get_nickname() + " " + channelName + " :You're not on that channel\r\n";
+        std::string error_message = ":" + _ServerName + " 442 " + inviter->get_nickname() + " " + channelName + " :You're not on that channel\r\n";
         send(inviter->get_fd(), error_message.c_str(), error_message.size(), 0);
         return;
     }
@@ -104,7 +117,7 @@ void Server::INVITE(Client *inviter, const std::string &nickname, const std::str
     std::string invite_message = ":" + inviter->get_nickname() + "!" + inviter->get_username() + "@" + inviter->get_hostname() + " INVITE " + invitedUser->get_nickname() + " :" + channelName + "\r\n";
     send(invitedUser->get_fd(), invite_message.c_str(), invite_message.size(), 0);
     // Notify inviter that the invite was sent
-    std::string confirm_message = ":server 341 " + inviter->get_nickname() + " " + invitedUser->get_nickname() + " " + channelName + "\r\n";
+    std::string confirm_message = ":" + _ServerName + " 341 " + inviter->get_nickname() + " " + invitedUser->get_nickname() + " " + channelName + "\r\n";
     send(inviter->get_fd(), confirm_message.c_str(), confirm_message.size(), 0);
 }
 

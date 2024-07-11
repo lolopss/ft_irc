@@ -1,20 +1,6 @@
 #pragma once
 
-#include <vector>
-#include <poll.h>
-#include <signal.h>
-#include <stdexcept>
-#include <iostream>
-#include <cstring>
-#include <unistd.h>
-#include <sstream>
-#include <stdlib.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <map>
-#include <utility> // std::pair / std::make_pair
-#include <iterator>
-#include <algorithm> // std::find
+#include "Utility.hpp"
 #include "Client.hpp"
 #include "Channel.hpp"
 
@@ -34,8 +20,11 @@ private:
     std::map<int, std::string>  _partial_messages; // for \D handling
 
 public:
-    Server(char *port, char *password) : _ServerName("PEERC"), _password(password), _Port(atoi(port)), _ServerSocketFd(-1)  {}
-    ~Server() {}
+    Server();
+    Server(char *port, char *password);
+    Server(const Server &o);
+    ~Server();
+    const Server    operator=(const Server &o);
 
     std::string getClientNickname(int client_fd);
     std::string getServerName() const;

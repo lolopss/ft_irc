@@ -26,8 +26,10 @@ class Channel {
 
     public:
         Channel();
+        Channel(const Channel &o);
         Channel(const std::string &name);
         ~Channel();
+        const Channel   operator=(const Channel &o);
         
         void        KICK(Client *operatorClient, Server *server, const std::string &channelName, const std::string &nickname, const std::string &message);
         std::string getChanName() const;

@@ -1,7 +1,5 @@
 #include "Channel.hpp"
 
-// 662 ['+' | '-']<mode_char> :<warning>
-
 void	Channel::handleModeI(bool activate)
 {
 	if (activate)

@@ -2,6 +2,9 @@
 
 bool Server::_Signal = false;
 
+Server::Server(char *port, char *password) : _ServerName("PEERC"), _password(password), _Port(atoi(port)), _ServerSocketFd(-1) {}
+Server::~Server() {}
+
 void Server::SignalHandler(int signum) {
     (void)signum;
     std::cout << "\nSignal Received!\n";
@@ -168,7 +171,7 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         std::string subcommand;
         iss >> subcommand;
         if (subcommand == "LS" || subcommand == "LIST") {
-            std::string cap_response = ":server CAP * LS :\r\n"; // Respond with supported capabilities
+            std::string cap_response = ":" + _ServerName + " CAP * LS :\r\n"; // Respond with supported capabilities
             send(client.get_fd(), cap_response.c_str(), cap_response.size(), 0);
             return true;
         } else if (subcommand == "END") {
@@ -183,7 +186,7 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
             PASS(&client, password);
             return true;
         } else {
-            std::string error_message = ":server 464 " + client.get_nickname() + " :Password required\r\n";
+            std::string error_message = ":" + _ServerName + " 464 " + client.get_nickname() + " :Password required\r\n";
             send(client.get_fd(), error_message.c_str(), error_message.size(), 0);
             std::cout << RED << client.get_fd() << " : No password entered\r\n" << WHI;
             close(client.get_fd());
@@ -206,11 +209,11 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         iss >> password;
         PASS(&client, password);
     }
-     /*else if (command == "WHOIS") {
+    else if (command == "WHOIS") {
         std::string target;
         iss >> target;
         WHOIS(&client, target);
-    }*/ else if (command == "JOIN") {
+    } else if (command == "JOIN") {
         std::string channel_name, password;
         iss >> channel_name >> password;
         JOIN(channel_name, client.get_nickname(), &client, password);
@@ -278,7 +281,7 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         if (channel)
             channel->KICK(&client, this, channel_name, nickname, reason);
         else {
-            std::string error_message = ":server 403 " + client.get_nickname() + " " + channel_name + " :No such channel\r\n";
+            std::string error_message = ":" + _ServerName + " 403 " + client.get_nickname() + " " + channel_name + " :No such channel\r\n";
             send(client.get_fd(), error_message.c_str(), error_message.size(), 0);
         }
     } else {
@@ -332,7 +335,7 @@ void Server::receiveNewData(int fd) {
                         std::string full_message = client.get_nickname() + ": " + complete_command + "\r\n";
                         channel->broadcastMessageToChan(full_message, fd);
                     } else {
-                        std::string error_message = ":server 401 " + client.get_nickname() + " " + channelName + " :No such channel\r\n";
+                        std::string error_message = ":" + _ServerName + " 401 " + client.get_nickname() + " " + channelName + " :No such channel\r\n";
                         send(fd, error_message.c_str(), error_message.size(), 0);
                     }
                 }
