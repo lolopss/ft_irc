@@ -19,9 +19,9 @@ class Client {
         bool                        _isOps;
     public:
         Client();
-        Client(const Client &o);
+        //Client(const Client &o);
         ~Client();
-        const Client    operator=(const Client &o);
+        //const Client    operator=(const Client &o);
 
         int         get_fd() const;
         void        set_fd(int fd);
