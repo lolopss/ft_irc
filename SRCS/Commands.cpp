@@ -547,7 +547,7 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
         else if (modes[i] == 'o') {
             ss >> nickname;
             handleModeO(activate, nickname, user, server);
-            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "o\r\n";
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? ("+o " + nickname + " is now operator") : ("- " + nickname + " is no more operator")) + "\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
             broadcastMessageToChan(changeMode, user->get_fd());
         }
@@ -603,6 +603,7 @@ void    Server::MODE(bool activate, const std::string &chanName, const std::stri
     }
     else
     {
+        std::cout << "MODE condition\r\n";
         std::string noSuchNick = ":" + _ServerName + " 401 " + user->get_nickname() + " " + chanName + " :No such nick/channel\r\n"; // RPL 401 No such nick
         send(user->get_fd(), noSuchNick.c_str(), noSuchNick.size(), 0);
     }
@@ -663,20 +664,17 @@ void    Channel::eraseUser(const std::string &nickname)
 // Grant / remove operator access
 void    Channel::grantOperator(Client *user, const std::string &nickname, Server *server, bool add)
 {
-    std::map<std::string, Client*>::iterator it;
-
     if (add && _userMap.find(nickname) != _userMap.end())
     {
         _userOps.insert(std::make_pair(nickname, user));
     }
     else if (_userOps.find(nickname) != _userOps.end())
     {
-        //it = _userOps.find(nickname);
-        //delete it->second;
         _userOps.erase(nickname);
     }
     else
     {
+        std::cout << "Grant ops condition\r\n";
         std::string noSuchNick = ":" + server->getServerName() + " 401 " + user->get_nickname() + " " + _chanName + " :No such nick/channel\r\n"; // RPL 401 No such nick
         send(user->get_fd(), noSuchNick.c_str(), noSuchNick.size(), 0);
     }

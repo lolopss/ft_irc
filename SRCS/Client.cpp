@@ -3,7 +3,7 @@
 Client::Client() : _fd(-1), _nickname(""), _username(""), _hostname(""), _servername(""), _realname(""), _registered(false), _invisible(false), _authenticated(false), _isOps(false) {}
 Client::~Client() {}
 
-Client::Client(const Client &o)
+/*Client::Client(const Client &o) { (void)o; }
 {
 	_fd = o._fd;
 	_nickname = o._nickname;
@@ -18,9 +18,9 @@ Client::Client(const Client &o)
 	_invisible = o._invisible;
 	_authenticated = o._authenticated;
 	_isOps = o._isOps;
-}
+}*/
 
-const Client	Client::operator=(const Client &o)
+/*const Client	Client::operator=(const Client &o) { (void)o; return *this; }
 {
 	if (this != &o)
 	{
@@ -40,7 +40,7 @@ const Client	Client::operator=(const Client &o)
 	}
 
 	return *this;
-}
+}*/
 
 
 /* -------------- Getter -------------- */
