@@ -1,5 +1,52 @@
 #include "Channel.hpp"
 
+
+std::string Server::getUniqueHostname(const std::string &hostname) {
+    std::string uniqueHostname = hostname;
+    int suffix = 1;
+
+    while (isHostnameInUse(uniqueHostname)) {
+        std::ostringstream oss;
+        oss << suffix;
+        uniqueHostname = hostname + oss.str();
+        ++suffix;
+    }
+
+    return uniqueHostname;
+}
+
+bool Server::isHostnameInUse(const std::string &hostname) {
+    for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+        if (it->get_hostname() == hostname) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string Server::getUniqueUsername(const std::string &username) {
+    std::string uniqueUsername = username;
+    int suffix = 1;
+
+    while (isUsernameInUse(uniqueUsername)) {
+        std::ostringstream oss;
+        oss << suffix;
+        uniqueUsername = username + oss.str();
+        ++suffix;
+    }
+
+    return uniqueUsername;
+}
+
+bool Server::isUsernameInUse(const std::string &username) {
+    for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+        if (it->get_username() == username) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void    Server::USER(Client *client, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname) {
     if (client->is_registered()) {
         std::string response = ":server 462 * :You may not reregister\r\n";
@@ -7,8 +54,10 @@ void    Server::USER(Client *client, const std::string &username, const std::str
         return;
     }
 
-    client->set_username(username);
-    client->set_hostname(hostname);
+    std::string uniqueUsername = getUniqueUsername(username);
+    client->set_username(uniqueUsername);
+    std::string uniqueHostname = getUniqueHostname(hostname);
+    client->set_hostname(uniqueHostname);
     client->set_servername(servername);
     client->set_realname(realname);
     client->set_registered(true);
@@ -39,7 +88,6 @@ void    Server::WHOIS(Client *client, const std::string &target) // to test WHOI
     {
         targetChannelList += user->get_channelList()[i] + (i + 1 < user->get_channelList().size() ? " " : "\r\n");
     }
-
     std::string whoIsUser = ":" + _ServerName + " 311 " + client->get_nickname() + " " + user->get_nickname() + " " + user->get_username() + " " + user->get_hostname() + " * :" + user->get_realname() + "\r\n";
     std::string whoIsServer = ":" + _ServerName + " 312 " + client->get_nickname() + " " + user->get_nickname() + " " + _ServerName + " :Homemade IRC serv\r\n";
     std::string endOfWhois = ":" + _ServerName + " 318 " + client->get_nickname() + " " + user->get_nickname() + " :End of WHOIS list\r\n";
@@ -573,24 +621,20 @@ bool    Channel::isUserInChannel(const std::string &nickname) const {
     return _userMap.find(nickname) != _userMap.end();
 }
 
-void    Channel::changeNicknameInChannel(Client *user, const std::string &nickname)
-{
-
-    if (_userMap.find(nickname) != _userMap.end())
-    {
-        _userMap.erase(nickname);
+void Channel::changeNicknameInChannel(Client *user, const std::string &old_nickname) {
+    if (_userMap.find(old_nickname) != _userMap.end()) {
+        _userMap.erase(old_nickname);
         _userMap.insert(std::make_pair(user->get_nickname(), user));
-        if (_userOps.find(nickname) != _userOps.end())
-        {
-            _userOps.erase(nickname);
+        if (_userOps.find(old_nickname) != _userOps.end()) {
+            _userOps.erase(old_nickname);
             _userOps.insert(std::make_pair(user->get_nickname(), user));
         }
+        // Broadcast the nickname change to all users in the channel
+        std::string nick_change_msg = ":" + old_nickname + "!" + user->get_username() + "@" + user->get_hostname() + " NICK :" + user->get_nickname() + "\r\n";
+        broadcastMessageToChan(nick_change_msg, -1);
+    } else {
+        std::cout << "User is not in Channel: " << _chanName << "\r\n";
     }
-    else
-    {
-        std::cout << "user is not in Channel : " << _chanName << "\r\n";
-    }
-
 }
 
 void Channel::addUser(Client *user) {

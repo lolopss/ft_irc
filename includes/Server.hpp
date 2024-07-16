@@ -44,7 +44,10 @@ public:
     void        broadcastMessage(const std::string &message, int sender_fd);
     bool        exec_command(std::istringstream &iss, const std::string &command, Client &client, const std::string &msg);
     void        run();
-    
+    bool        isHostnameInUse(const std::string &hostname);
+    std::string getUniqueHostname(const std::string &hostname);
+    bool        isUsernameInUse(const std::string &username);
+    std::string getUniqueUsername(const std::string &username);
     
     /*****************Commands(Cmd.cpp)*****************/
     
