@@ -105,11 +105,8 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
         send(client->get_fd(), response.c_str(), response.size(), 0);
         return;
     }
-    // Vérification si le surnom est déjà utilisé
-    bool alr_exists = false;
     for (size_t i = 0; i < _clients.size(); i++) {
         if (new_nick == _clients[i].get_nickname()) {
-            alr_exists = true;
             std::string response = ":" + _ServerName + " 433 * " + new_nick + " :Nickname is already in use\r\n";
             send(client->get_fd(), response.c_str(), response.size(), 0);
             return ;
@@ -213,7 +210,7 @@ bool    Channel::checkAllModes(Client *user, const std::string &nickname, const 
     }
     if (_modeL)
     {
-        if (_nbUsers == _userLimit)
+        if (_nbUsers >= _userLimit)
         {
             std::string userLimit = ":" + server->getServerName() + " 471 " + user->get_username() + " " + _chanName + " :Cannot join channel (+l)\r\n"; // 471 ERR_CHANNELISFULL
             send(user->get_fd(), userLimit.c_str(), userLimit.size(), 0);
@@ -461,7 +458,6 @@ void Server::PRIVMSG(int senderFd, const std::string &target, const std::string 
         // Target is a specific user
         Client *receiver = findClientByNickname(target);
         if (receiver) {
-            std::cout << "FULL MESSAGE = " << fullMessage << "END OF THE FULL MESSAGE.\r\n";
             send(receiver->get_fd(), fullMessage.c_str(), fullMessage.size(), 0);
         } else {
             std::string errorMessage = ":" + _ServerName + " 401 " + sender->get_nickname() + " " + target + " :No such nick/channel\r\n";
@@ -507,9 +503,11 @@ void Channel::KICK(Client *op, Server *server, const std::string &channelName, c
     Client *user = _userMap[nickname];
     std::string kick_message = ":" + op->get_nickname() + " KICK " + channelName + " " + nickname + " :" + reason + "\r\n";
     broadcastMessageToChan(kick_message, -1);
+    eraseUser(nickname);
     std::string user_message = ":" + server->getServerName() + " 442 " + nickname + " " + channelName + " :" + op->get_nickname() + " kicked you from the channel\r\n";
     send(user->get_fd(), user_message.c_str(), user_message.size(), 0);
-    eraseUser(nickname);
+    std::string namreply_message = ":" + server->getServerName() + " 366 " + nickname + " " + channelName + " :End of /NAMES list\r\n";
+    send(user->get_fd(), namreply_message.c_str(), namreply_message.size(), 0);
     std::string confirmation_message = ":" + server->getServerName() + " 369 " + op->get_nickname() + " " + nickname + " :Kicked from " + channelName + "\r\n";
     send(op->get_fd(), confirmation_message.c_str(), confirmation_message.size(), 0);
 }
