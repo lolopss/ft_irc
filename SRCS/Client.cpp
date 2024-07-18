@@ -1,46 +1,8 @@
 #include "Client.hpp"
 
+
 Client::Client() : _fd(-1), _nickname(""), _username(""), _hostname(""), _servername(""), _realname(""), _registered(false), _invisible(false), _authenticated(false), _isOps(false) {}
 Client::~Client() {}
-
-/*Client::Client(const Client &o) { (void)o; }
-{
-	_fd = o._fd;
-	_nickname = o._nickname;
-	_username = o._username;
-	_hostname = o._hostname;
-	_servername = o._servername;
-	_realname = o._realname;
-	_current_channel = o._current_channel;
-	_channelList = o._channelList;
-	_registered = o._registered;
-	_IPadd = o._IPadd;
-	_invisible = o._invisible;
-	_authenticated = o._authenticated;
-	_isOps = o._isOps;
-}*/
-
-/*const Client	Client::operator=(const Client &o) { (void)o; return *this; }
-{
-	if (this != &o)
-	{
-		_fd = o._fd;
-		_nickname = o.get_nickname();
-		_username = o.get_username();
-		_hostname = o.get_hostname();
-		_servername = o.get_servername();
-		_realname = o.get_realname();
-		_current_channel = o.get_current_channel();
-		_channelList = o.get_channelList();
-		_registered = o.is_registered();
-		_IPadd = o.get_IPADD();
-		_invisible = o._invisible;
-		_authenticated = o.is_authenticated();
-		_isOps = o._isOps;
-	}
-
-	return *this;
-}*/
 
 
 /* -------------- Getter -------------- */

@@ -1,52 +1,6 @@
 #include "Channel.hpp"
 
 
-std::string Server::getUniqueHostname(const std::string &hostname) {
-    std::string uniqueHostname = hostname;
-    int suffix = 1;
-
-    while (isHostnameInUse(uniqueHostname)) {
-        std::ostringstream oss;
-        oss << suffix;
-        uniqueHostname = hostname + oss.str();
-        ++suffix;
-    }
-
-    return uniqueHostname;
-}
-
-bool Server::isHostnameInUse(const std::string &hostname) {
-    for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
-        if (it->get_hostname() == hostname) {
-            return true;
-        }
-    }
-    return false;
-}
-
-std::string Server::getUniqueUsername(const std::string &username) {
-    std::string uniqueUsername = username;
-    int suffix = 1;
-
-    while (isUsernameInUse(uniqueUsername)) {
-        std::ostringstream oss;
-        oss << suffix;
-        uniqueUsername = username + oss.str();
-        ++suffix;
-    }
-
-    return uniqueUsername;
-}
-
-bool Server::isUsernameInUse(const std::string &username) {
-    for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
-        if (it->get_username() == username) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void    Server::USER(Client *client, const std::string &username, const std::string &hostname, const std::string &servername, const std::string &realname) {
     if (client->is_registered()) {
         std::string response = ":server 462 * :You may not reregister\r\n";
@@ -70,6 +24,7 @@ void    Server::USER(Client *client, const std::string &username, const std::str
     inet_ntop(AF_INET, &(client_addr.sin_addr), client_ip, INET_ADDRSTRLEN);
     client->set_IPADD(client_ip);
 }
+
 
 void    Server::WHOIS(Client *client, const std::string &target) // to test WHOIS command
 {
@@ -99,6 +54,7 @@ void    Server::WHOIS(Client *client, const std::string &target) // to test WHOI
     send(client->get_fd(), endOfWhois.c_str(), endOfWhois.size(), 0);
 }
 
+
 void    Server::NICK(Client *client, const std::string &new_nick) {
     if (new_nick.empty()) {
         std::string response = ":" + _ServerName + " 431 * :No nickname given\r\n";
@@ -124,14 +80,6 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
     send(client->get_fd(), confirmation.c_str(), confirmation.size(), 0);
 }
 
-Client* Server::findClientByNickname(const std::string& nickname) {
-    for (size_t i = 0; i < _clients.size(); ++i) {
-        if (_clients[i].get_nickname() == nickname) {
-            return &_clients[i];
-        }
-    }
-    return NULL;
-}
 
 void Server::INVITE(Client *inviter, const std::string &nickname, const std::string &channelName) {
     // Find the invited user
@@ -166,14 +114,6 @@ void Server::INVITE(Client *inviter, const std::string &nickname, const std::str
     send(inviter->get_fd(), confirm_message.c_str(), confirm_message.size(), 0);
 }
 
-Channel *Server::get_Channel(const std::string &chanName){
-    std::map<std::string, Channel*>::iterator it = _chanMap.find(chanName);
-    if (it != _chanMap.end()) {
-        return it->second;
-    }
-    return NULL;
-}
-
 
 void Channel::broadcastMessageToChan(const std::string &message, int sender_fd){
     for (std::map<std::string, Client*>::iterator it = _userMap.begin(); it != _userMap.end(); ++it) {
@@ -184,6 +124,8 @@ void Channel::broadcastMessageToChan(const std::string &message, int sender_fd){
     }
 }
 
+
+// When joining channel check all modes
 bool    Channel::checkAllModes(Client *user, const std::string &nickname, const std::string &password, Server *server)
 {
     if (_modeI)
@@ -543,7 +485,7 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
         else if (modes[i] == 'o') {
             ss >> nickname;
             handleModeO(activate, nickname, user, server);
-            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? ("+o " + nickname + " is now operator") : ("- " + nickname + " is no more operator")) + "\r\n";
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? ("+o " + nickname + " is now operator") : ("-o " + nickname + " is no more operator")) + "\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), 0);
             broadcastMessageToChan(changeMode, user->get_fd());
         }
@@ -587,7 +529,7 @@ void    Server::MODE(bool activate, const std::string &chanName, const std::stri
             }
             else
             {
-                std::string notOps = chanName + " :" + user->get_nickname() + " is not operator of that channel\r\n";
+                std::string notOps = ":" + _ServerName + " 482 " + user->get_nickname() + " " + chanName + " :You're not channel operator\r\n";
                 send(user->get_fd(), notOps.c_str(), notOps.size(), 0);
             }
         }
@@ -689,4 +631,67 @@ void Server::PING(int fd, const std::string &msg) {
     std::string pong_response = "PONG " + msg + "\r\n";
     send(fd, pong_response.c_str(), pong_response.size(), 0);
     std::cout  << GRE << "Sent to " << fd << ": " << WHI << pong_response << std::endl;
+}
+
+std::string Server::getUniqueHostname(const std::string &hostname) {
+    std::string uniqueHostname = hostname;
+    int suffix = 1;
+
+    while (isHostnameInUse(uniqueHostname)) {
+        std::ostringstream oss;
+        oss << suffix;
+        uniqueHostname = hostname + oss.str();
+        ++suffix;
+    }
+
+    return uniqueHostname;
+}
+
+bool Server::isHostnameInUse(const std::string &hostname) {
+    for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+        if (it->get_hostname() == hostname) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string Server::getUniqueUsername(const std::string &username) {
+    std::string uniqueUsername = username;
+    int suffix = 1;
+
+    while (isUsernameInUse(uniqueUsername)) {
+        std::ostringstream oss;
+        oss << suffix;
+        uniqueUsername = username + oss.str();
+        ++suffix;
+    }
+
+    return uniqueUsername;
+}
+
+bool Server::isUsernameInUse(const std::string &username) {
+    for (std::vector<Client>::iterator it = _clients.begin(); it != _clients.end(); ++it) {
+        if (it->get_username() == username) {
+            return true;
+        }
+    }
+    return false;
+}
+
+Client* Server::findClientByNickname(const std::string& nickname) {
+    for (size_t i = 0; i < _clients.size(); ++i) {
+        if (_clients[i].get_nickname() == nickname) {
+            return &_clients[i];
+        }
+    }
+    return NULL;
+}
+
+Channel *Server::get_Channel(const std::string &chanName){
+    std::map<std::string, Channel*>::iterator it = _chanMap.find(chanName);
+    if (it != _chanMap.end()) {
+        return it->second;
+    }
+    return NULL;
 }
