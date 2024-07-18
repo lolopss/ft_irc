@@ -3,7 +3,7 @@ CC = c++
 FLAG = -Wall -Wextra -Werror -std=c++98 -g3
 SRCS = Bot.cpp
 OBJS = $(SRCS:.cpp=.o)
-INCLUDE = -I.
+INCLUDE = -I. -I../includes/
 
 .cpp.o	:
 	$(CC) $(FLAG) $(INCLUDE) -c $< -o $(<:.cpp=.o)
