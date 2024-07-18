@@ -97,13 +97,13 @@ void Server::sendWelcomeMessages(int client_fd) {
     std::string motd = ":" + _ServerName + " 372 " + getClientNickname(client_fd) + " :- Welcome to this IRC server!\r\n";
     std::string endOfMotd = ":" + _ServerName + " 376 " + getClientNickname(client_fd) + " :End of /MOTD command.\r\n";
 
-    send(client_fd, welcome.c_str(), welcome.size(), 0);
-    send(client_fd, yourHost.c_str(), yourHost.size(), 0);
-    send(client_fd, created.c_str(), created.size(), 0);
-    send(client_fd, myInfo.c_str(), myInfo.size(), 0);
-    send(client_fd, motdStart.c_str(), motdStart.size(), 0);
-    send(client_fd, motd.c_str(), motd.size(), 0);
-    send(client_fd, endOfMotd.c_str(), endOfMotd.size(), 0);
+    send(client_fd, welcome.c_str(), welcome.size(), MSG_NOSIGNAL);
+    send(client_fd, yourHost.c_str(), yourHost.size(), MSG_NOSIGNAL);
+    send(client_fd, created.c_str(), created.size(), MSG_NOSIGNAL);
+    send(client_fd, myInfo.c_str(), myInfo.size(), MSG_NOSIGNAL);
+    send(client_fd, motdStart.c_str(), motdStart.size(), MSG_NOSIGNAL);
+    send(client_fd, motd.c_str(), motd.size(), MSG_NOSIGNAL);
+    send(client_fd, endOfMotd.c_str(), endOfMotd.size(), MSG_NOSIGNAL);
 }
 
 void Server::acceptNewClient() {
@@ -151,7 +151,7 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
             size_t total_sent = 0;
             while (total_sent < full_message.size()) {
                 size_t chunk_size = std::min(full_message.size() - total_sent, static_cast<size_t>(BUFFER_SIZE - 1));
-                int sent = send(client_fd, full_message.c_str() + total_sent, chunk_size, 0);
+                int sent = send(client_fd, full_message.c_str() + total_sent, chunk_size, MSG_NOSIGNAL);
                 if (sent == -1) {
                     std::cerr << RED << "Failed to send message to client " << client_fd << WHI << std::endl;
                     break;
@@ -182,7 +182,7 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         iss >> subcommand;
         if (subcommand == "LS" || subcommand == "LIST") {
             std::string cap_response = ":" + _ServerName + " CAP * LS :\r\n"; // Respond with supported capabilities
-            send(client.get_fd(), cap_response.c_str(), cap_response.size(), 0);
+            send(client.get_fd(), cap_response.c_str(), cap_response.size(), MSG_NOSIGNAL);
             return true;
         } else if (subcommand == "END") {
             return true; // CAP negotiation ends
@@ -197,7 +197,7 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
             return true;
         } else {
             std::string error_message = ":" + _ServerName + " 464 " + client.get_nickname() + " :Password required\r\n";
-            send(client.get_fd(), error_message.c_str(), error_message.size(), 0);
+            send(client.get_fd(), error_message.c_str(), error_message.size(), MSG_NOSIGNAL);
             std::cout << RED << client.get_fd() << " : No password entered\r\n" << WHI;
             close(client.get_fd());
             clearClients(client.get_fd());
@@ -294,7 +294,7 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
             channel->KICK(&client, this, channel_name, nickname, reason);
         else {
             std::string error_message = ":" + _ServerName + " 403 " + client.get_nickname() + " " + channel_name + " :No such channel\r\n";
-            send(client.get_fd(), error_message.c_str(), error_message.size(), 0);
+            send(client.get_fd(), error_message.c_str(), error_message.size(), MSG_NOSIGNAL);
         }
     } else {
         return false; // Not a command, handle as a regular message
@@ -348,7 +348,7 @@ void Server::receiveNewData(int fd) {
                         channel->broadcastMessageToChan(full_message, fd);
                     } else {
                         std::string error_message = ":" + _ServerName + " 401 " + client.get_nickname() + " " + channelName + " :No such channel\r\n";
-                        send(fd, error_message.c_str(), error_message.size(), 0);
+                        send(fd, error_message.c_str(), error_message.size(), MSG_NOSIGNAL);
                     }
                 }
             }
