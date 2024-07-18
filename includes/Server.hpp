@@ -48,6 +48,7 @@ public:
     std::string getUniqueHostname(const std::string &hostname);
     bool        isUsernameInUse(const std::string &username);
     std::string getUniqueUsername(const std::string &username);
+    std::vector<std::string> split(const std::string &s, char delimiter);
     
     /*****************Commands(Cmd.cpp)*****************/
     

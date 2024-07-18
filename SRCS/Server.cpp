@@ -163,6 +163,16 @@ void Server::broadcastMessage(const std::string &message, int sender_fd) {
     }
 }
 
+std::vector<std::string> Server::split(const std::string &s, char delimiter) { // For multiple channels /join
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
 bool Server::exec_command(std::istringstream &iss, const std::string &command, Client &client, const std::string &msg) {
     
     //std::cout << GRE << "Received command: " << WHI << command << YEL << " from client: " << client.get_fd() << WHI << "\n\n";
@@ -214,10 +224,12 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         iss >> target;
         WHOIS(&client, target);
     } else if (command == "JOIN") {
-        std::string channel_name, password;
-        iss >> channel_name >> password;
-        JOIN(channel_name, client.get_nickname(), &client, password);
-    }
+    std::string channels, password;
+    iss >> channels >> password;
+    std::vector<std::string> channel_list = split(channels, ',');
+    for (size_t i = 0; i < channel_list.size(); ++i)
+        JOIN(channel_list[i], client.get_nickname(), &client, password);
+}
     else if (command == "PART") {
         std::string channel_name;
         iss >> channel_name;

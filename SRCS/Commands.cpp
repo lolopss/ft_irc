@@ -221,18 +221,17 @@ bool    Channel::checkAllModes(Client *user, const std::string &nickname, const 
 }
 
 
-void    Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user, const std::string &password)
-{
+
+
+void Server::JOIN(const std::string &chanName, const std::string &nickname, Client *user, const std::string &password) {
     if (_chanMap.find(chanName) == _chanMap.end()) {
         Channel *newChannel = new Channel(chanName);
         _chanMap[chanName] = newChannel;
         _chanMap[chanName]->addUser(user);
         _chanMap[chanName]->grantOperator(user, nickname, this, true);
-    }
-    else
-    {
+    } else {
         if (!_chanMap[chanName]->checkAllModes(user, nickname, password, this))
-            return ;
+            return;
         _chanMap[chanName]->addUser(user);
     }
     std::string joinMsg = ":" + user->get_nickname() + " JOIN " + chanName + "\r\n";
@@ -244,7 +243,6 @@ void    Server::JOIN(const std::string &chanName, const std::string &nickname, C
     user->insertChannel(chanName);
     user->set_current_channel(chanName);
 }
-
 void    Server::LIST(Client *user)
 {
     std::map<std::string, Channel*>::iterator it;
