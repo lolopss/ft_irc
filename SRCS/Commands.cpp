@@ -80,16 +80,11 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
     send(client->get_fd(), confirmation.c_str(), confirmation.size(), MSG_NOSIGNAL);
 }
 
-
 void Server::INVITE(Client *inviter, const std::string &nickname, const std::string &channelName) {
     // Find the invited user
     Client *invitedUser = findClientByNickname(nickname);
     if (!invitedUser) {
         std::string error_message = ":" + _ServerName + " 401 " + inviter->get_nickname() + " " + nickname + " :No such nick/channel\r\n";
-        /*inviter->send(error_message);
-        void Client::send(std::string msg) {
-        send(get_fd(), msg.c_str(), msg.size(), MSG_NOSIGNAL);
-}*/
         send(inviter->get_fd(), error_message.c_str(), error_message.size(), MSG_NOSIGNAL);
         return;
     }

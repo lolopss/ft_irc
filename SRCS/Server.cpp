@@ -89,18 +89,22 @@ void Server::serverInit() {
 }
 
 void Server::sendWelcomeMessages(int client_fd) {
-    std::string welcome = ":" + _ServerName + " 001 " + getClientNickname(client_fd) + " :Welcome to the IRC server\r\n";
-    std::string yourHost = ":" + _ServerName + " 002 " + getClientNickname(client_fd) + " :Your host is PEERC, running version 1.0\r\n";
-    std::string created = ":" + _ServerName + " 003 " + getClientNickname(client_fd) + " :This server was created the 3rd of June\r\n";
-    std::string myInfo = ":" + _ServerName + " 004 " + getClientNickname(client_fd) + " :PEERC 1.0 o o\r\n";
-    std::string motdStart = ":" + _ServerName + " 375 " + getClientNickname(client_fd) + " :- server_name Message of the day - \r\n";
-    std::string motd = ":" + _ServerName + " 372 " + getClientNickname(client_fd) + " :- Welcome to this IRC server!\r\n";
-    std::string endOfMotd = ":" + _ServerName + " 376 " + getClientNickname(client_fd) + " :End of /MOTD command.\r\n";
+    std::string nickname = getClientNickname(client_fd);
+
+    std::string welcome = ":" + _ServerName + " 001 " + nickname + " :Welcome to the 42RC Network, " + getClientByFd(client_fd)->getID() + "\r\n";
+    std::string yourHost = ":" + _ServerName + " 002 " + nickname + " :Your host is " + _ServerName + ", running version 1.0.0\r\n";
+    std::string created = ":" + _ServerName + " 003 " + nickname + " :This server was created 2024-06-03\r\n";
+    std::string myInfo = ":" + _ServerName + " 004 " + nickname + " " + _ServerName + " 1.0.0 " + "User mode=i Channel modes=itkol" + "\r\n";
+    std::string isupport = ":" + _ServerName + " 005 " + nickname + " PREFIX=(ov)@+ CHANTYPES=# CHANMODES=itkol  CASEMAPPING=rfc2119 :are supported by this server\r\n";
+    std::string motdStart = ":" + _ServerName + " 375 " + nickname + " :- " + _ServerName + " Message of the day - \r\n";
+    std::string motd = ":" + _ServerName + " 372 " + nickname + " :- Welcome to this IRC server!\r\n";
+    std::string endOfMotd = ":" + _ServerName + " 376 " + nickname + " :End of /MOTD command.\r\n";
 
     send(client_fd, welcome.c_str(), welcome.size(), MSG_NOSIGNAL);
     send(client_fd, yourHost.c_str(), yourHost.size(), MSG_NOSIGNAL);
     send(client_fd, created.c_str(), created.size(), MSG_NOSIGNAL);
     send(client_fd, myInfo.c_str(), myInfo.size(), MSG_NOSIGNAL);
+    send(client_fd, isupport.c_str(), isupport.size(), MSG_NOSIGNAL);
     send(client_fd, motdStart.c_str(), motdStart.size(), MSG_NOSIGNAL);
     send(client_fd, motd.c_str(), motd.size(), MSG_NOSIGNAL);
     send(client_fd, endOfMotd.c_str(), endOfMotd.size(), MSG_NOSIGNAL);
