@@ -61,6 +61,11 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
         send(client->get_fd(), response.c_str(), response.size(), MSG_NOSIGNAL);
         return;
     }
+    if (new_nick.find('#'))
+    {
+        std::string response = client->get_username() + " " + client->get_nickname() + " :Erroneus nickname\r\n";
+
+    }
     for (size_t i = 0; i < _clients.size(); i++) {
         if (new_nick == _clients[i].get_nickname()) {
             std::string response = ":" + _ServerName + " 433 * " + new_nick + " :Nickname is already in use\r\n";
@@ -383,7 +388,7 @@ void Server::PRIVMSG(int senderFd, const std::string &target, const std::string 
     if (pos != std::string::npos && message.substr(pos + 2, 8) == "DCC SEND") {
         fullMessage = sender->getID() + " PRIVMSG " + target + ":" + message + "\r\n";
     } else
-        fullMessage = sender->getID() + " PRIVMSG " + target + " :" + message + "\r\n";
+        fullMessage = sender->getID() + " PRIVMSG " + target  + message + "\r\n";
     if (target[0] == '#') {
         // Target is a channel
         Channel *channel = get_Channel(target);
@@ -457,27 +462,26 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
 {
     std::stringstream   ss(mode);
     std::string         password, modes, nickname;
-    int                 limit;
 
     ss >> modes;
     for (unsigned i = 0; modes[i]; i++)
     {
         if (modes[i] == 'i') {
             handleModeI(activate);
-            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "i\r\n";
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "invite only\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), MSG_NOSIGNAL);
             broadcastMessageToChan(changeMode, user->get_fd());
         }
         else if (modes[i] == 't') {
             handleModeT(activate);
-            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "t\r\n";
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "topic protection\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), MSG_NOSIGNAL);
             broadcastMessageToChan(changeMode, user->get_fd());
         }
         else if (modes[i] == 'k') {
             ss >> password;
             handleModeK(activate, password);
-            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "k\r\n";
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "password required\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), MSG_NOSIGNAL);
             broadcastMessageToChan(changeMode, user->get_fd());
         }
@@ -488,12 +492,17 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), MSG_NOSIGNAL);
             broadcastMessageToChan(changeMode, user->get_fd());
         }
-        else if (modes[i] == 'l') {
-            ss >> limit;
-            std::ostringstream  limitStr;
-            limitStr << limit;
+        if (modes[i] == 'l') {
+            int limit = 0;
+            if (activate) {
+                ss >> limit;
+            }
+            std::ostringstream limitStr;
+            if (activate) {
+                limitStr << limit;
+            }
             handleModeL(activate, limit);
-            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? "+" : "-") + "l\r\n";
+            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + (activate ? "+limit " + limitStr.str() : "-limit") + "\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), MSG_NOSIGNAL);
             broadcastMessageToChan(changeMode, user->get_fd());
         }

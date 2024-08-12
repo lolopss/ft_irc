@@ -124,6 +124,7 @@ void Server::acceptNewClient() {
     client_poll.events = POLLIN;
     client_poll.revents = 0;
     _fds.push_back(client_poll);
+
     Client client;
     client.set_fd(client_fd);
     std::string name = "Guest_";
@@ -134,8 +135,8 @@ void Server::acceptNewClient() {
     _clients.push_back(client);
     _client_nb++;
     std::cout << "New client connected: " << client_fd << std::endl;
-    sendWelcomeMessages(client_fd); // all rpl for start
 }
+
 
 void Server::broadcastMessage(const std::string &message, int sender_fd) {
     if (message.size() < 1)
@@ -178,9 +179,6 @@ std::vector<std::string> Server::split(const std::string &s, char delimiter) { /
 }
 
 bool Server::exec_command(std::istringstream &iss, const std::string &command, Client &client, const std::string &msg) {
-    
-    //std::cout << GRE << "Received command: " << WHI << command << YEL << " from client: " << client.get_fd() << WHI << "\n\n";
-
     if (command == "CAP") {
         std::string subcommand;
         iss >> subcommand;
@@ -218,6 +216,9 @@ bool Server::exec_command(std::istringstream &iss, const std::string &command, C
         iss >> username >> hostname >> servername;
         std::getline(iss, realname);
         USER(&client, username, hostname, servername, realname);
+        if (client.is_authenticated() && !client.get_nickname().empty()) {
+            sendWelcomeMessages(client.get_fd()); // Send welcome messages after both PASS and USER are received
+        }
     } else if (command == "PASS") {
         std::string password;
         iss >> password;
@@ -311,7 +312,14 @@ void Server::receiveNewData(int fd) {
     memset(buffer, 0, BUFFER_SIZE);
     int bytes_received = recv(fd, buffer, BUFFER_SIZE - 1, 0);
 
-    if (bytes_received <= 0) {
+    if (bytes_received < 0) {
+        std::cerr << "recv() failed for client " << fd << std::endl;
+        close(fd);
+        clearClients(fd);
+        return;
+    }
+
+    if (bytes_received == 0) {
         std::cout << "Client " << fd << " disconnected." << std::endl;
         close(fd);
         clearClients(fd);
@@ -320,6 +328,10 @@ void Server::receiveNewData(int fd) {
 
     buffer[bytes_received] = '\0';
     std::string message(buffer);
+
+    // Filter out Ctrl+D (EOF) characters
+    message.erase(std::remove(message.begin(), message.end(), 4), message.end());
+
     _partial_messages[fd] += message;
 
     size_t pos;
@@ -328,7 +340,7 @@ void Server::receiveNewData(int fd) {
         _partial_messages[fd].erase(0, pos + 2);
 
         if (!complete_command.empty()) {
-            std::cout << GRE << "Received from " << fd << ": " << WHI << complete_command << "\n\n";
+            std::cout << "Received from " << fd << ": " << complete_command << std::endl;
 
             std::istringstream iss(complete_command);
             std::string command;
@@ -358,8 +370,10 @@ void Server::receiveNewData(int fd) {
             }
         }
     }
-    
 }
+
+
+
 
 
 void Server::run() {

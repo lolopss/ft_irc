@@ -14,7 +14,6 @@ int check_args(int ac, char **av){
 }
 
 int main(int ac, char **av) {
-    
     if (check_args(ac, av))
         return 1;
     Server serv(av[1], av[2]);
