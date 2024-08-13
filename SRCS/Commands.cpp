@@ -499,9 +499,9 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
         else if (modes[i] == 'o') {
             ss >> nickname;
             handleModeO(activate, nickname, user, server);
-            std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? ("+o " + nickname + " is now operator") : ("-o " + nickname + " is no more operator")) + "\r\n";
+            /*std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? ("+o " + nickname + " is now operator") : ("-o " + nickname + " is no more operator")) + "\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), MSG_NOSIGNAL);
-            broadcastMessageToChan(changeMode, user->get_fd());
+            broadcastMessageToChan(changeMode, user->get_fd());*/
         }
         if (modes[i] == 'l') {
             int limit = 0;
@@ -624,15 +624,21 @@ void    Channel::grantOperator(Client *user, const std::string &nickname, Server
     if (add && _userMap.find(nickname) != _userMap.end())
     {
         _userOps.insert(std::make_pair(nickname, user));
+        std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(add ? ("+o " + nickname + " is now operator") : ("-o " + nickname + " is no longer operator")) + "\r\n";
+        send(user->get_fd(), changeMode.c_str(), changeMode.size(), MSG_NOSIGNAL);
+        broadcastMessageToChan(changeMode, user->get_fd());
     }
     else if (_userOps.find(nickname) != _userOps.end())
     {
         _userOps.erase(nickname);
+        std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(add ? ("+o " + nickname + " is now operator") : ("-o " + nickname + " is no longer operator")) + "\r\n";
+        send(user->get_fd(), changeMode.c_str(), changeMode.size(), MSG_NOSIGNAL);
+        broadcastMessageToChan(changeMode, user->get_fd());
     }
     else
     {
         std::cout << "Grant ops condition\r\n";
-        std::string noSuchNick = ":" + server->getServerName() + " 401 " + user->get_nickname() + " " + _chanName + " :No such nick/channel\r\n"; // RPL 401 No such nick
+        std::string noSuchNick = ":" + server->getServerName() + " 401 " + user->get_nickname() + " " + _chanName + " :No such nick\r\n"; // RPL 401 No such nick
         send(user->get_fd(), noSuchNick.c_str(), noSuchNick.size(), MSG_NOSIGNAL);
     }
 }
