@@ -499,7 +499,7 @@ void    Channel::setModes(bool activate, const std::string &mode, Client *user, 
         else if (modes[i] == 'o') {
             ss >> nickname;
             handleModeO(activate, nickname, user, server);
-            /*std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? ("+o " + nickname + " is now operator") : ("-o " + nickname + " is no more operator")) + "\r\n";
+            /*std::string changeMode = ":" + user->get_username() + " MODE " + _chanName + " " + std::string(activate ? ("+o " + nickname + " is now operator") : ("-o " + nickname + " is no longer operator")) + "\r\n";
             send(user->get_fd(), changeMode.c_str(), changeMode.size(), MSG_NOSIGNAL);
             broadcastMessageToChan(changeMode, user->get_fd());*/
         }
