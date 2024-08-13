@@ -54,6 +54,17 @@ void    Server::WHOIS(Client *client, const std::string &target) // to test WHOI
     send(client->get_fd(), endOfWhois.c_str(), endOfWhois.size(), MSG_NOSIGNAL);
 }
 
+static std::string  strToupper(std::string str)
+{
+    std::string ret;
+    for (unsigned i = 0; i < str.length(); i++)
+    {
+        ret += std::toupper(str[i]);
+    }
+
+    std::cout << ret << std::endl;
+    return ret;
+}
 
 void    Server::NICK(Client *client, const std::string &new_nick) {
     if (new_nick.empty()) {
@@ -67,7 +78,7 @@ void    Server::NICK(Client *client, const std::string &new_nick) {
 
     }
     for (size_t i = 0; i < _clients.size(); i++) {
-        if (new_nick == _clients[i].get_nickname()) {
+        if (strToupper(new_nick) == strToupper(_clients[i].get_nickname())) {
             std::string response = ":" + _ServerName + " 433 * " + new_nick + " :Nickname is already in use\r\n";
             send(client->get_fd(), response.c_str(), response.size(), MSG_NOSIGNAL);
             return ;
